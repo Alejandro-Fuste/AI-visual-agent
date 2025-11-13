@@ -54,7 +54,7 @@ function PromptForm({ onRunStart }) {
           onChange={(e) => setPrompt(e.target.value)}
           rows={3}
           required
-          style={{ width: "100%" }}
+          
         />
       </label>
 

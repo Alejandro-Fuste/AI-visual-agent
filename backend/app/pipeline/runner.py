@@ -21,19 +21,23 @@ def run_full_pipeline(prompt: str, file_path: str | None = None):
     try:
         log("init", f"Pipeline started for prompt: {prompt}")
 
-        # Stage 1: Perception (YOLO / Omniparser)
+        # Stage 1: Perception (Load OmniParser analysis)
         perception_output = perception.process_image(file_path)
-        log("YOLO", f"Detected {len(perception_output.get('elements', []))} UI elements")
+        log("OmniParser", f"Loaded pre-processed UI analysis")
 
-        # Stage 2: Reasoning (BLIP)
+        # Stage 2: Reasoning (Pass through analysis)
         reasoning_output = reasoning.analyze_elements(perception_output)
-        log("BLIP", "Semantic reasoning complete")
+        log("Reasoning", "Analysis prepared for LLM")
 
-        # Stage 3: LLM Decision (LangChain)
+        # Stage 3: LLM Decision (Send to LLM API at port 5000)
         llm_result = llm_agent.generate_actions(prompt, reasoning_output)
-        log("LLM", "LLM completed action generation")
+        
+        if llm_result.get("status") == "success":
+            log("LLM", f"Action plan generated using {llm_result.get('model', 'LLM')}")
+        else:
+            log("LLM", f"LLM error: {llm_result.get('error', 'Unknown error')}")
 
-        status = "success"
+        status = llm_result.get("status", "success")
         result = llm_result
 
     except Exception as e:

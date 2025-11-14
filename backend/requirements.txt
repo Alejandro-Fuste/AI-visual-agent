@@ -3,4 +3,5 @@ uvicorn[standard]==0.32.0
 pydantic==2.9.2
 python-multipart==0.0.9      # for file uploads
 python-dotenv==1.0.1         # .env support
-orjson==3.10.7               # faster JSON 
+orjson==3.10.7               # faster JSON
+requests==2.32.3             # HTTP client for LLM API

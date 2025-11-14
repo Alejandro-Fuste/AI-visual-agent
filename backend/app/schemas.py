@@ -31,6 +31,7 @@ class StatusResponse(BaseModel):
     run_id: str
     status: Literal["queued", "running", "success", "error"]
     logs: List[LogEntry]
+    result: Optional[Any] = None  # Include the result in status response
 
 
 # ---- /reprompt ----

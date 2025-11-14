@@ -205,3 +205,43 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# Virtual environments
+venv/
+.env/
+.venv/
+.venv-web-system/
+.venv-llm/
+.venv-qwen/
+
+# Node modules
+node_modules/
+frontend/node_modules/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+backend/.env
+frontend/.env
+
+# logs
+backend/logs/
+frontend/logs/
+*.log
+
+# Uploads and temporary files
+backend/uploads/
+uploads/
+temp/
+tmp/
+
+# Build outputs
+frontend/dist/
+frontend/build/
+backend/dist/
+backend/build/
+
+# Package lock files (optional - remove if you want to commit them)
+package-lock.json
+frontend/package-lock.json

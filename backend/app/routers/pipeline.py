@@ -60,7 +60,12 @@ async def get_status(run_id: str):
     run = RUNS.get(run_id)
     if not run:
         raise HTTPException(status_code=404, detail="Run ID not found")
-    return StatusResponse(run_id=run_id, status=run["status"], logs=run["logs"])
+    return StatusResponse(
+        run_id=run_id, 
+        status=run["status"], 
+        logs=run["logs"],
+        result=run.get("result")  # Include the result
+    )
 
 
 @router.post("/reprompt", response_model=RepromptResponse)

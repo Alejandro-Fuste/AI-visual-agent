@@ -1,0 +1,12 @@
+[
+  {
+    "stage": "init",
+    "message": "Pipeline started for prompt: Use my search bar to navigate to google.com.",
+    "timestamp": "2025-11-13 20:52:47.558277"
+  },
+  {
+    "stage": "error",
+    "message": "Planner failed: Qwen call failed: 401 {\"error\":{\"message\":\"Incorrect API key provided. For details, see: https://help.aliyun.com/zh/model-studio/error-code#apikey-error\",\"type\":\"invalid_request_error\",\"param\":null,\"code\":\"invalid_api_key\"},\"request_id\":\"abf6ab50-9487-40b2-a481-0517b4f0143e\"}",
+    "timestamp": "2025-11-13 20:52:53.780413"
+  }
+]

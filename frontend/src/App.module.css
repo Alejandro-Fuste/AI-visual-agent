@@ -286,7 +286,7 @@ form button:disabled {
 }
 
 .modalTextarea {
-  width: 100%;
+  width: 94%;
   height: 100px;
   border-radius: 6px;
   border: 1px solid #dcdcdc;
@@ -310,7 +310,14 @@ form button:disabled {
   border-radius: 6px;
   cursor: pointer;
   transition: background 0.2s ease-in-out;
+  /* display: none; */
 }
+
+.modalButtonSubmit:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+
 
 .modalButtonSubmit:hover {
   background-color: #fbc46b;

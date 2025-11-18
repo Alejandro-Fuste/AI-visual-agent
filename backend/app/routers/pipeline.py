@@ -3,7 +3,8 @@ from app.schemas import RunResponse, StatusResponse, RepromptRequest, RepromptRe
 from app.pipeline.runner import run_full_pipeline
 from uuid import uuid4
 from datetime import datetime
-import os
+import os, json
+from pathlib import Path
 
 router = APIRouter(prefix="/api", tags=["pipeline"])
 
@@ -65,12 +66,42 @@ async def get_status(run_id: str):
 
 @router.post("/reprompt", response_model=RepromptResponse)
 async def handle_reprompt(payload: RepromptRequest):
-    """
-    Called when the LLM needs additional user input.
-    """
+    """Called when the LLM needs additional user input."""
     log_entry = LogEntry(stage="reprompt", message=payload.message)
     run = RUNS.get(payload.run_id)
-    if run:
-        run["logs"].append(log_entry)
-        return RepromptResponse(acknowledged=True, message="User input received")
-    raise HTTPException(status_code=404, detail="Run ID not found")
+
+    if not run:
+        raise HTTPException(status_code=404, detail="Run ID not found")
+
+    # Add to in-memory logs
+    run["logs"].append(log_entry)
+
+    # Persist to a JSON log file
+    log_dir = Path("logs")
+    log_dir.mkdir(exist_ok=True)
+    log_path = log_dir / f"{payload.run_id}.json"
+
+    try:
+        # Load existing log file if it exists
+        if log_path.exists():
+            with open(log_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+        else:
+            data = {"run_id": payload.run_id, "logs": []}
+
+        # Merge existing logs with current in-memory run logs
+        all_logs = data.get("logs", [])
+        all_logs.extend(
+            {"stage": log.stage, "message": log.message}
+            for log in run["logs"]
+            if {"stage": log.stage, "message": log.message} not in all_logs
+        )
+
+        # Write updated logs back to file
+        with open(log_path, "w", encoding="utf-8") as f:
+            json.dump({"run_id": payload.run_id, "logs": all_logs}, f, indent=4)
+
+    except Exception as e:
+        print(f"⚠️ Error writing re-prompt log: {e}")
+
+    return RepromptResponse(acknowledged=True, message="User input received and logged")

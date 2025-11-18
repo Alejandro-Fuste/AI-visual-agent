@@ -22,6 +22,7 @@ function RePromptModal({ show, message, onSubmit, onClose }) {
         <div className={styles.modalButtons}>
           <button
             className={styles.modalButtonSubmit}
+            disabled={!response.trim()}
             onClick={() => {
               onSubmit(response);
               setResponse("");
@@ -29,6 +30,7 @@ function RePromptModal({ show, message, onSubmit, onClose }) {
           >
             Submit
           </button>
+
           <button className={styles.modalButtonClose} onClick={onClose}>
             Cancel
           </button>

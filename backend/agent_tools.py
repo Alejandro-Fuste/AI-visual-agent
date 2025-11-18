@@ -240,6 +240,18 @@ class AgentToolbox:
             record.error = str(exc)
         return self.log_action(record)
 
+    def shortcut(self, keys: Sequence[str], explanation: Optional[str] = None) -> ActionRecord:
+        normalized = [str(key).strip() for key in keys if str(key).strip()]
+        combo = " + ".join(normalized) if normalized else "shortcut"
+        record = ActionRecord(action="shortcut", message=explanation or f"Press {combo}", metadata={"keys": normalized})
+        try:
+            if not self.dry_run and normalized:
+                pyautogui.hotkey(*normalized)
+        except Exception as exc:
+            record.success = False
+            record.error = str(exc)
+        return self.log_action(record)
+
     def annotate(self, bbox: BBox, text: str, color: Tuple[int, int, int, int] = (0, 255, 0, 180)) -> ActionRecord:
         rect = (bbox[0], bbox[1], bbox[2] - bbox[0], bbox[3] - bbox[1])
         self.overlay.draw_box(rect, color)

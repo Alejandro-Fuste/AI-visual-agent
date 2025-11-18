@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -26,12 +27,14 @@ class VisualAgentEngine:
         qwen_api_base: str,
         qwen_model: str,
         qwen_temperature: float,
+        action_pause: float = 0.35,
     ) -> None:
         self.run_id = run_id
         self.max_iterations = max_iterations
+        self.action_pause = max(action_pause, 0.0)
         log_dir.mkdir(parents=True, exist_ok=True)
         screenshot_dir.mkdir(parents=True, exist_ok=True)
-        log_file = log_dir / f"{run_id}.log"
+        log_file = log_dir / "actions.log"
         self.toolbox = AgentToolbox(
             log_file=log_file,
             screenshot_dir=screenshot_dir,
@@ -60,6 +63,14 @@ class VisualAgentEngine:
         latest_elements: List[Dict[str, Any]] = []
         plan_payload: Dict[str, Any] = {}
 
+        start_record = ActionRecord(
+            action="info",
+            message="User clicked Go on the Visual Agent panel. Ignore that panel and perform the requested task directly.",
+            success=True,
+        )
+        logged_start = self.toolbox.log_action(start_record)
+        action_history.append(logged_start.to_dict())
+
         instruction = self._compose_instruction(prompt, clarifications)
         screenshot_path = Path(file_path) if file_path else None
         if screenshot_path is None:
@@ -83,6 +94,7 @@ class VisualAgentEngine:
                         screenshot_path,
                         latest_elements,
                         action_history,
+                        omniparser_payload=perception,
                     )
                 except QwenPlannerError as exc:
                     raise RuntimeError(f"Planner failed: {exc}") from exc
@@ -107,6 +119,8 @@ class VisualAgentEngine:
 
                 executed = self._execute_actions(planner_response.actions)
                 action_history.extend(executed)
+                if self.action_pause:
+                    time.sleep(self.action_pause)
 
                 if not planner_response.should_continue:
                     break
@@ -157,6 +171,9 @@ class VisualAgentEngine:
                     record = self.toolbox.wait(action.wait_seconds, explanation=action.explanation)
                 elif action.tool == "annotate" and action.bbox and action.explanation:
                     record = self.toolbox.annotate(tuple(action.bbox), action.explanation)
+                elif action.tool in {"shortcut", "hotkey"}:
+                    key_sequence: List[str] = action.keys or ([] if action.value is None else [part.strip() for part in str(action.value).split("+")])
+                    record = self.toolbox.shortcut(key_sequence, explanation=action.explanation)
                 elif action.tool == "screenshot":
                     record = self.toolbox.take_screenshot(f"run_{self.run_id}_step")
                 else:
@@ -171,6 +188,8 @@ class VisualAgentEngine:
                 )
                 self.toolbox.log_action(record)
             executed.append(record.to_dict())
+            if self.action_pause:
+                time.sleep(self.action_pause)
         return executed
 
     def _compose_instruction(self, prompt: str, clarifications: List[str]) -> str:

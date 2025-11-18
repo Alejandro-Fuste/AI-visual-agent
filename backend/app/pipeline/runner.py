@@ -9,15 +9,13 @@ from app.agent.engine import VisualAgentEngine
 from app.config import settings
 from app.schemas import LogEntry
 
-LOG_DIR = (settings.AGENT_LOG_DIR.parent / "pipeline").resolve()
-LOG_DIR.mkdir(parents=True, exist_ok=True)
-
 
 def run_full_pipeline(
     run_id: str,
     prompt: str,
     file_path: Optional[str] = None,
     clarifications: Optional[List[str]] = None,
+    run_dir: Optional[Path] = None,
 ):
     logs: list[LogEntry] = []
 
@@ -28,11 +26,18 @@ def run_full_pipeline(
 
     log("init", f"Pipeline started for prompt: {prompt}")
 
+    run_root = Path(run_dir) if run_dir else settings.AGENT_RUNS_DIR / run_id
+    screenshots_dir = run_root / "screenshots"
+    actions_log_dir = run_root / "logs"
+    pipeline_log_dir = run_root / "pipeline"
+    for path in [run_root, screenshots_dir, actions_log_dir, pipeline_log_dir]:
+        path.mkdir(parents=True, exist_ok=True)
+
     try:
         engine = VisualAgentEngine(
             run_id,
-            screenshot_dir=settings.AGENT_SCREENSHOT_DIR,
-            log_dir=settings.AGENT_LOG_DIR,
+            screenshot_dir=screenshots_dir,
+            log_dir=actions_log_dir,
             max_iterations=settings.AGENT_MAX_ITERATIONS,
             enable_overlay=settings.AGENT_ENABLE_OVERLAY,
             dry_run=settings.AGENT_DRY_RUN,
@@ -42,6 +47,7 @@ def run_full_pipeline(
             qwen_api_base=settings.QWEN_API_BASE,
             qwen_model=settings.QWEN_MODEL,
             qwen_temperature=settings.QWEN_TEMPERATURE,
+            action_pause=settings.AGENT_ACTION_PAUSE,
         )
         agent_result = engine.run(prompt, file_path=file_path, clarifications=clarifications)
         result_payload = {
@@ -64,8 +70,8 @@ def run_full_pipeline(
         result_payload = None
         pending_question = None
 
-    log_path = LOG_DIR / f"{run_id}.json"
-    with log_path.open("w", encoding="utf-8") as handle:
+    pipeline_log_path = pipeline_log_dir / "pipeline.json"
+    with pipeline_log_path.open("w", encoding="utf-8") as handle:
         json.dump([entry.model_dump() for entry in logs], handle, indent=2, default=str)
 
     return {
@@ -73,6 +79,6 @@ def run_full_pipeline(
         "status": status,
         "logs": logs,
         "result": result_payload,
-        "log_path": str(log_path),
+        "log_path": str(pipeline_log_path),
         "pending_question": pending_question,
     }

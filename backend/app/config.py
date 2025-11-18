@@ -26,12 +26,11 @@ class Settings(BaseModel):
     QWEN_TEMPERATURE: float = float(os.getenv("QWEN_TEMPERATURE", "0.15"))
 
     AGENT_MAX_ITERATIONS: int = int(os.getenv("AGENT_MAX_ITERATIONS", "3"))
-    AGENT_SCREENSHOT_DIR: Path = Path(os.getenv("AGENT_SCREENSHOT_DIR", str((RUNTIME_DIR / "screenshots").resolve())))
-    AGENT_LOG_DIR: Path = Path(os.getenv("AGENT_LOG_DIR", str((RUNTIME_DIR / "logs" / "actions").resolve())))
+    AGENT_RUNS_DIR: Path = Path(os.getenv("AGENT_RUNS_DIR", str((RUNTIME_DIR / "runs").resolve())))
     AGENT_ENABLE_OVERLAY: bool = os.getenv("AGENT_ENABLE_OVERLAY", "true").lower() == "true"
     AGENT_DRY_RUN: bool = os.getenv("AGENT_DRY_RUN", "false").lower() == "true"
+    AGENT_ACTION_PAUSE: float = float(os.getenv("AGENT_ACTION_PAUSE", "0.35"))
 
 
 settings = Settings()
-settings.AGENT_SCREENSHOT_DIR.mkdir(parents=True, exist_ok=True)
-settings.AGENT_LOG_DIR.mkdir(parents=True, exist_ok=True)
+settings.AGENT_RUNS_DIR.mkdir(parents=True, exist_ok=True)

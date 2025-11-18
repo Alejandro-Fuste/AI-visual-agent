@@ -1,0 +1,29 @@
+{
+    "run_id": "6c44c71a-e910-4e45-83c2-2947f53c0919",
+    "logs": [
+        {
+            "stage": "init",
+            "message": "Pipeline started"
+        },
+        {
+            "stage": "init",
+            "message": "Pipeline started for prompt: Test run 11/13/25 11:13 am"
+        },
+        {
+            "stage": "YOLO",
+            "message": "Detected 1 UI elements"
+        },
+        {
+            "stage": "BLIP",
+            "message": "Semantic reasoning complete"
+        },
+        {
+            "stage": "LLM",
+            "message": "LLM completed action generation"
+        },
+        {
+            "stage": "reprompt",
+            "message": "Can you clarify your last prompt?"
+        }
+    ]
+}

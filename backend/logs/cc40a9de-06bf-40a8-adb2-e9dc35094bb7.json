@@ -1,0 +1,22 @@
+[
+  {
+    "stage": "init",
+    "message": "Pipeline started for prompt: Test auto model trigger 11/13/25 11:23am",
+    "timestamp": "2025-11-13 16:24:02.917002"
+  },
+  {
+    "stage": "YOLO",
+    "message": "Detected 1 UI elements",
+    "timestamp": "2025-11-13 16:24:02.917056"
+  },
+  {
+    "stage": "BLIP",
+    "message": "Semantic reasoning complete",
+    "timestamp": "2025-11-13 16:24:02.917072"
+  },
+  {
+    "stage": "LLM",
+    "message": "LLM completed action generation",
+    "timestamp": "2025-11-13 16:24:02.917103"
+  }
+]

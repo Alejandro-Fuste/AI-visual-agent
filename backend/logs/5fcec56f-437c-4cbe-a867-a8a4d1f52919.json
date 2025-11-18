@@ -1,0 +1,22 @@
+[
+  {
+    "stage": "init",
+    "message": "Pipeline started for prompt: Test run 11/13/25 11:13 am",
+    "timestamp": "2025-11-13 16:14:10.761521"
+  },
+  {
+    "stage": "YOLO",
+    "message": "Detected 1 UI elements",
+    "timestamp": "2025-11-13 16:14:10.761570"
+  },
+  {
+    "stage": "BLIP",
+    "message": "Semantic reasoning complete",
+    "timestamp": "2025-11-13 16:14:10.761584"
+  },
+  {
+    "stage": "LLM",
+    "message": "LLM completed action generation",
+    "timestamp": "2025-11-13 16:14:10.761616"
+  }
+]

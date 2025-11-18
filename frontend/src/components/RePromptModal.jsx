@@ -6,6 +6,16 @@ function RePromptModal({ show, message, onSubmit, onClose }) {
 
   if (!show) return null;
 
+  const handleSubmit = () => {
+    onSubmit(response.trim());
+    setResponse("");
+  };
+
+  const handleClose = () => {
+    setResponse("");
+    onClose();
+  };
+
   return (
     <div className={styles.modalOverlay}>
       <div className={styles.modalContent}>
@@ -20,18 +30,10 @@ function RePromptModal({ show, message, onSubmit, onClose }) {
         />
 
         <div className={styles.modalButtons}>
-          <button
-            className={styles.modalButtonSubmit}
-            disabled={!response.trim()}
-            onClick={() => {
-              onSubmit(response);
-              setResponse("");
-            }}
-          >
+          <button className={styles.modalButtonSubmit} onClick={handleSubmit}>
             Submit
           </button>
-
-          <button className={styles.modalButtonClose} onClick={onClose}>
+          <button className={styles.modalButtonClose} onClick={handleClose}>
             Cancel
           </button>
         </div>

@@ -250,6 +250,38 @@ form button:disabled {
   font-weight: 600;
 }
 
+
+.logList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.logList li {
+  margin-bottom: 0.35rem;
+  font-size: 0.95rem;
+}
+
+.resultSection {
+  margin-top: 1.25rem;
+  padding: 1rem;
+  background: #ffffff;
+  border-radius: 10px;
+  box-shadow: 0 0 6px rgba(0, 0, 0, 0.08);
+}
+
+.actionList {
+  margin-top: 0.75rem;
+  padding-left: 1.25rem;
+  color: #0e3558;
+}
+
+.actionList li {
+  margin-bottom: 0.35rem;
+}
+
 /* === RePrompt Modal === */
 .modalOverlay {
   position: fixed;

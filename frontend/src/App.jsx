@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import LeftColumn from "./components/LeftColumn";
 import PromptForm from "./components/PromptForm";
 import BrandHeader from "./components/BrandHeader";
@@ -12,83 +12,69 @@ function App() {
   const [logs, setLogs] = useState([]);
   const [modalOpen, setModalOpen] = useState(false);
   const [modalMessage, setModalMessage] = useState("");
+  const [actionResult, setActionResult] = useState(null);
 
   useEffect(() => {
-    if (!runId) return; // don't poll until a run has started
-  
-    let lastLogCount = 0;
-    const interval = setInterval(async () => {
+    if (!runId) return;
+
+    let cancelled = false;
+    let intervalId;
+
+    const pollStatus = async () => {
       try {
         const data = await apiFetch(`/api/status/${runId}`);
-        setLogs(data.logs);
+        if (cancelled) return;
+        setLogs(data.logs || []);
         setStatus(data.status);
-  
-        // Detect new log entries since the last poll
-        if (data.logs.length > lastLogCount) {
-          const newLogs = data.logs.slice(lastLogCount);
-  
-          // Check if any new log entry is a "reprompt"
-          const repromptLog = newLogs.find((log) => log.stage === "reprompt");
-          if (repromptLog) {
-            console.log("🔁 LLM requested clarification:", repromptLog.message);
-            setModalMessage(repromptLog.message);
-            setModalOpen(true);
-          }
-  
-          lastLogCount = data.logs.length;
+        if (data.result) {
+          setActionResult(data.result);
         }
-  
-        // Stop polling when run completes
+
+        if (data.pending_question && data.status === "needs_input") {
+          setModalMessage(data.pending_question);
+          setModalOpen(true);
+        }
+
         if (data.status === "success" || data.status === "error") {
-          clearInterval(interval);
+          clearInterval(intervalId);
         }
       } catch (err) {
-        console.error("❌ Error polling status:", err);
-        clearInterval(interval);
+        console.error(err);
+        setStatus("error");
+        clearInterval(intervalId);
       }
-    }, 1500);
-  
-    return () => clearInterval(interval);
+    };
+
+    pollStatus();
+    intervalId = setInterval(pollStatus, 2000);
+
+    return () => {
+      cancelled = true;
+      clearInterval(intervalId);
+    };
   }, [runId]);
-  
 
-  // Simulate a backend re-prompt trigger (or real via LLM)
-  // const triggerReprompt = async () => {
-  //   const data = await apiFetch("/api/reprompt", {
-  //     method: "POST",
-  //     body: JSON.stringify({
-  //       run_id: runId || "demo-run-id",
-  //       message: "Can you clarify your last prompt?",
-  //     }),
-  //   });
-  //   if (data.acknowledged) {
-  //     setModalMessage("Can you clarify your last prompt?");
-  //     setModalOpen(true);
-  //   }
-  // };
-
-  const handleModalSubmit = async (userResponse) => {
+  const handleRunStart = (id) => {
+    setRunId(id);
+    setLogs([]);
+    setStatus("Running...");
+    setActionResult(null);
     setModalOpen(false);
-
-    if (!runId) {
-      console.warn("No run ID found – skipping reprompt submission.");
-      return;
-    }
-
-    try {
-      const res = await apiFetch("/api/reprompt", {
-        method: "POST",
-        body: JSON.stringify({
-          run_id: runId,
-          message: userResponse,
-        }),
-      });
-
-    } catch (err) {
-      console.error("❌ Error sending reprompt:", err);
-    }
+    setModalMessage("");
   };
 
+  const handleModalSubmit = async (userResponse) => {
+    if (!userResponse || !runId) {
+      setModalOpen(false);
+      return;
+    }
+    await apiFetch("/api/reprompt", {
+      method: "POST",
+      body: JSON.stringify({ run_id: runId, message: userResponse }),
+    });
+    setModalOpen(false);
+    setStatus("Running...");
+  };
 
   return (
     <div className={styles.appContainer}>
@@ -96,28 +82,37 @@ function App() {
       <main className={styles.mainContent}>
         <div className={styles.leftContainer}>
           <LeftColumn />
-          {/* <button
-            className={styles.modalButtonSubmit}
-            onClick={triggerReprompt}
-          >
-            Simulate Re-Prompt
-          </button> */}
         </div>
 
         <div className={styles.rightContainer}>
           <div className={styles.formCard}>
             <h2 className={styles.formHeader}>Run the Visual Agent</h2>
-            <PromptForm onRunStart={setRunId} />
+            <PromptForm onRunStart={handleRunStart} />
             <div className={styles.statusSection}>
               <h3>Status: {status}</h3>
               <ul className={styles.logList}>
                 {logs.map((log, i) => (
-                  <li key={i}>
+                  <li key={`${log.stage}-${i}`}>
                     <strong>{log.stage}</strong>: {log.message}
                   </li>
                 ))}
               </ul>
             </div>
+            {actionResult && (
+              <div className={styles.resultSection}>
+                <h3>Agent Output</h3>
+                <p>{actionResult.final_message}</p>
+                {actionResult.actions && actionResult.actions.length > 0 && (
+                  <ol className={styles.actionList}>
+                    {actionResult.actions.map((act, idx) => (
+                      <li key={`action-${idx}`}>
+                        <strong>{act.action}</strong>: {act.message}
+                      </li>
+                    ))}
+                  </ol>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </main>

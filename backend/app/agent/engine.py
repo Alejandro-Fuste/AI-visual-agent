@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import time
+import json
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -41,6 +42,8 @@ class VisualAgentEngine:
             enable_overlay=enable_overlay,
             dry_run=dry_run,
         )
+        self.plan_log_dir = (log_dir / "plans").resolve()
+        self.plan_log_dir.mkdir(parents=True, exist_ok=True)
         self.omniparser = OmniParserClient(api_url=omniparser_url, api_token=omniparser_token)
         self.planner = QwenPlanner(
             api_key=qwen_api_key,
@@ -104,6 +107,7 @@ class VisualAgentEngine:
                     "needs_user_input": planner_response.needs_user_input,
                     "actions": [action.__dict__ for action in planner_response.actions],
                 }
+                self._write_plan_log(iteration, plan_payload)
 
                 if planner_response.needs_user_input:
                     return AgentResult(
@@ -198,4 +202,12 @@ class VisualAgentEngine:
             return prompt
         clar_text = "\n".join(f"- {item}" for item in clarifications)
         return f"{prompt}\n\nAdditional details from user:\n{clar_text}"
+
+    def _write_plan_log(self, iteration: int, plan_payload: Dict[str, Any]) -> None:
+        try:
+            plan_path = self.plan_log_dir / f"plan_iter_{iteration + 1}.json"
+            with plan_path.open("w", encoding="utf-8") as handle:
+                json.dump(plan_payload, handle, indent=2)
+        except Exception:
+            pass
 

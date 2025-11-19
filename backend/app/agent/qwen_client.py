@@ -61,6 +61,12 @@ class QwenPlanner:
                 "type": "text",
                 "text": f"Recent action history:\n{history_text or 'None yet.'}\n",
             },
+            {
+                "type": "text",
+                "text": "Reminder: The Visual Agent launcher panel or modal in the screenshot is not part of the task. "
+                        "It simply shows status text; do not type into it, wait for it, or ask it for instructions. "
+                        "Focus on the actual desktop/browser content behind it.",
+            },
         ]
 
         for idx, chunk in enumerate(element_chunks, start=1):
@@ -109,9 +115,12 @@ class QwenPlanner:
             "- For form filling, type exactly the requested text and confirm caret placement before typing.\n"
             "- Use annotate to explain visual evidence when helpful.\n"
             "- Log important state transitions with write_log; consult prior context with read_log if you need to backtrack.\n"
+            "- Every response must include at least one executable action unless you truly cannot proceed. "
+            "If you need to pause, emit a `wait` action with explanation rather than returning an empty list.\n"
             "- Ask for clarification (set needs_user_input=true and include user_question) only when the user’s request cannot be accomplished "
-            "with the currently visible UI. Do not ask for permission to perform obvious supporting actions like opening a browser tab or "
-            "navigating to Google.\n"
+            "with the currently visible UI. Handle broad requests independently—choose the best search result or workflow without asking for preferences "
+            "unless the user explicitly demanded a choice. Do not ask for permission to perform obvious supporting actions like opening a browser tab or "
+            "running a Google search.\n"
             "- Stop when the task is complete: set should_continue=false and leave remaining actions empty.\n\n"
             "Respond only with valid JSON matching this schema."
         )

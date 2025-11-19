@@ -1,0 +1,12 @@
+[
+  {
+    "stage": "init",
+    "message": "Pipeline started for prompt: Use google to find me an article about AI agents.",
+    "timestamp": "2025-11-19 17:37:46.970212"
+  },
+  {
+    "stage": "complete",
+    "message": "Agent finished successfully",
+    "timestamp": "2025-11-19 17:40:35.638206"
+  }
+]

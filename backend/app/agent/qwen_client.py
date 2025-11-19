@@ -152,6 +152,7 @@ class GPTPlanner:
             "- Handle broad user requests independently—choose an appropriate search result or workflow without asking for preferences "
             "unless the user explicitly required a choice.\n"
             "- Prefer interacting with actual buttons/inputs rather than surrounding text labels; if text isn’t clickable, locate the nearest actionable element.\n"
+            "- When a required form field (username, DOB, etc.) needs information the user has not provided, do not invent data—set needs_user_input=true and ask for it explicitly.\n"
             "- Ask for clarification only when the user’s request truly cannot be completed from the current UI.\n"
             "- Only set should_continue=false when the latest screenshot/analysis clearly shows the user’s goal is complete "
             "(e.g., logged-in dashboard visible, blank document loaded, item added to cart). If unsure, keep should_continue=true.\n"

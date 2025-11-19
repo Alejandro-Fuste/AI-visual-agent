@@ -88,6 +88,8 @@ class VisualAgentEngine:
 
         try:
             for iteration in range(self.max_iterations):
+                # Clear overlays at the beginning of each iteration to avoid cluttering screenshots
+                self.toolbox.clear_overlay()
                 try:
                     if pending_perception is not None:
                         perception = pending_perception
@@ -135,6 +137,8 @@ class VisualAgentEngine:
                 if self.action_pause:
                     time.sleep(self.action_pause)
 
+                # Clear any visual annotations before capturing verification screenshots
+                self.toolbox.clear_overlay()
                 post_shot = self.toolbox.take_screenshot(f"run_{self.run_id}_{iteration}_post")
                 post_path = post_shot.metadata.get("path")
                 if not post_path:

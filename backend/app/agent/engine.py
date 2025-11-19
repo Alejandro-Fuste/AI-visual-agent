@@ -24,10 +24,10 @@ class VisualAgentEngine:
         dry_run: bool,
         omniparser_url: str,
         omniparser_token: str,
-        qwen_api_key: str,
-        qwen_api_base: str,
-        qwen_model: str,
-        qwen_temperature: float,
+        openai_api_key: str,
+        openai_api_base: str,
+        openai_model: str,
+        openai_temperature: float,
         action_pause: float = 0.35,
     ) -> None:
         self.run_id = run_id
@@ -46,10 +46,10 @@ class VisualAgentEngine:
         self.plan_log_dir.mkdir(parents=True, exist_ok=True)
         self.omniparser = OmniParserClient(api_url=omniparser_url, api_token=omniparser_token)
         self.planner = QwenPlanner(
-            api_key=qwen_api_key,
-            api_base=qwen_api_base,
-            model=qwen_model,
-            temperature=qwen_temperature,
+            api_key=openai_api_key,
+            api_base=openai_api_base,
+            model=openai_model,
+            temperature=openai_temperature,
         )
         self.log_file = log_file
 
@@ -162,10 +162,12 @@ class VisualAgentEngine:
                         explanation=action.explanation,
                         bbox=tuple(action.bbox) if action.bbox else None,
                     )
-                elif action.tool == "type" and action.coordinates and action.value is not None:
+                elif action.tool == "type" and action.value is not None:
+                    x = action.coordinates[0] if action.coordinates else None
+                    y = action.coordinates[1] if action.coordinates else None
                     record = self.toolbox.type_text(
-                        action.coordinates[0],
-                        action.coordinates[1],
+                        x,
+                        y,
                         text=str(action.value),
                         explanation=action.explanation,
                     )

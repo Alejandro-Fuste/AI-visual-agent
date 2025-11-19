@@ -43,10 +43,10 @@ def run_full_pipeline(
             dry_run=settings.AGENT_DRY_RUN,
             omniparser_url=settings.HF_OMNIPARSER_URL,
             omniparser_token=settings.HF_API_TOKEN,
-            qwen_api_key=settings.QWEN_API_KEY,
-            qwen_api_base=settings.QWEN_API_BASE,
-            qwen_model=settings.QWEN_MODEL,
-            qwen_temperature=settings.QWEN_TEMPERATURE,
+            openai_api_key=settings.OPENAI_API_KEY,
+            openai_api_base=settings.OPENAI_BASE_URL,
+            openai_model=settings.OPENAI_MODEL,
+            openai_temperature=settings.OPENAI_TEMPERATURE,
             action_pause=settings.AGENT_ACTION_PAUSE,
         )
         agent_result = engine.run(prompt, file_path=file_path, clarifications=clarifications)

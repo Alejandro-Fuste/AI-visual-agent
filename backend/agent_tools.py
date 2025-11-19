@@ -207,12 +207,14 @@ class AgentToolbox:
             record.error = str(exc)
         return self.log_action(record)
 
-    def type_text(self, x: int, y: int, text: str, explanation: Optional[str] = None) -> ActionRecord:
-        record = ActionRecord(action="type", message=explanation or f"Type '{text}'", coords=(x, y), metadata={"text": text})
+    def type_text(self, x: Optional[int], y: Optional[int], text: str, explanation: Optional[str] = None) -> ActionRecord:
+        coords = (x, y) if x is not None and y is not None else None
+        record = ActionRecord(action="type", message=explanation or f"Type '{text}'", coords=coords, metadata={"text": text})
         try:
             if not self.dry_run:
-                pyautogui.click(x, y)
-                time.sleep(0.1)
+                if x is not None and y is not None:
+                    pyautogui.click(x, y)
+                    time.sleep(0.1)
                 pyautogui.write(text, interval=0.05)
         except Exception as exc:
             record.success = False

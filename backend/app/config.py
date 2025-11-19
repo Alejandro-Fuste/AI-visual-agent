@@ -20,10 +20,10 @@ class Settings(BaseModel):
     HF_OMNIPARSER_URL: str = os.getenv("HF_OMNIPARSER_URL", "")
     HF_API_TOKEN: str = os.getenv("HF_API_TOKEN", "")
 
-    QWEN_API_KEY: str = os.getenv("QWEN_API_KEY", "")
-    QWEN_API_BASE: str = os.getenv("QWEN_API_BASE", "https://dashscope.aliyuncs.com/compatible-mode/v1")
-    QWEN_MODEL: str = os.getenv("QWEN_MODEL", "qwen2.5-vl-7b-instruct")
-    QWEN_TEMPERATURE: float = float(os.getenv("QWEN_TEMPERATURE", "0.15"))
+    OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY", os.getenv("QWEN_API_KEY", ""))
+    OPENAI_BASE_URL: str = os.getenv("OPENAI_BASE_URL", os.getenv("QWEN_API_BASE", "https://api.openai.com/v1"))
+    OPENAI_MODEL: str = os.getenv("OPENAI_MODEL", os.getenv("QWEN_MODEL", "gpt-4o-mini"))
+    OPENAI_TEMPERATURE: float = float(os.getenv("OPENAI_TEMPERATURE", os.getenv("QWEN_TEMPERATURE", "0.0")))
 
     AGENT_MAX_ITERATIONS: int = int(os.getenv("AGENT_MAX_ITERATIONS", "3"))
     AGENT_RUNS_DIR: Path = Path(os.getenv("AGENT_RUNS_DIR", str((RUNTIME_DIR / "runs").resolve())))

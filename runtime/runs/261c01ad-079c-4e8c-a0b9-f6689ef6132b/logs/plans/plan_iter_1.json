@@ -1,0 +1,70 @@
+{
+  "thinking": "Open a new browser tab and search for an academic article on AI agents, then pick a suitable result.",
+  "should_continue": true,
+  "needs_user_input": false,
+  "actions": [
+    {
+      "tool": "shortcut",
+      "coordinates": null,
+      "element_id": null,
+      "value": null,
+      "keys": [
+        "ctrl",
+        "t"
+      ],
+      "explanation": "Open a new tab in the existing browser to start a web search.",
+      "bbox": null,
+      "amount": null,
+      "wait_seconds": null
+    },
+    {
+      "tool": "wait",
+      "coordinates": null,
+      "element_id": null,
+      "value": null,
+      "keys": null,
+      "explanation": "Wait for the new tab to open.",
+      "bbox": null,
+      "amount": null,
+      "wait_seconds": 1
+    },
+    {
+      "tool": "shortcut",
+      "coordinates": null,
+      "element_id": null,
+      "value": null,
+      "keys": [
+        "ctrl",
+        "l"
+      ],
+      "explanation": "Focus the address bar for search entry.",
+      "bbox": null,
+      "amount": null,
+      "wait_seconds": null
+    },
+    {
+      "tool": "type",
+      "coordinates": null,
+      "element_id": null,
+      "value": "\"AI agents\" academic article site:arxiv.org OR site:acm.org OR site:ieee.org",
+      "keys": null,
+      "explanation": "Search for academic articles on AI agents, prioritizing scholarly sources like arXiv or journals.",
+      "bbox": null,
+      "amount": null,
+      "wait_seconds": null
+    },
+    {
+      "tool": "shortcut",
+      "coordinates": null,
+      "element_id": null,
+      "value": null,
+      "keys": [
+        "enter"
+      ],
+      "explanation": "Submit the search query.",
+      "bbox": null,
+      "amount": null,
+      "wait_seconds": null
+    }
+  ]
+}

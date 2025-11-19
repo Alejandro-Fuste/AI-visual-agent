@@ -1,0 +1,12 @@
+[
+  {
+    "stage": "init",
+    "message": "Pipeline started for prompt: Can you identify what the object in the uploaded image is and find it for me on amazon? Add it to my cart.",
+    "timestamp": "2025-11-19 19:46:54.171473"
+  },
+  {
+    "stage": "error",
+    "message": "Perception stage failed: OmniParser request failed: 400 {\"error\":\"pop from empty list\"}",
+    "timestamp": "2025-11-19 19:46:55.561432"
+  }
+]

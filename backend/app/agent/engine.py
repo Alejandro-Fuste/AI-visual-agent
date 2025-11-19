@@ -121,7 +121,7 @@ class VisualAgentEngine:
                         pending_question=planner_response.user_question,
                     )
 
-                executed = self._execute_actions(planner_response.actions)
+                executed = self._execute_actions(planner_response.actions, latest_elements)
                 action_history.extend(executed)
                 if self.action_pause:
                     time.sleep(self.action_pause)
@@ -150,15 +150,26 @@ class VisualAgentEngine:
         finally:
             self.toolbox.shutdown()
 
-    def _execute_actions(self, actions: List[PlannedAction]) -> List[Dict[str, Any]]:
+    def _execute_actions(self, actions: List[PlannedAction], elements: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         executed: List[Dict[str, Any]] = []
+        element_lookup = {elem.get("element_id"): elem for elem in elements}
         for action in actions:
             record: Optional[ActionRecord] = None
             try:
-                if action.tool == "click" and action.coordinates:
+                if action.tool == "click":
+                    x = y = None
+                    if action.coordinates:
+                        x, y = action.coordinates[0], action.coordinates[1]
+                    elif action.element_id and action.element_id in element_lookup:
+                        bbox = element_lookup[action.element_id].get("bbox") or []
+                        if len(bbox) == 4:
+                            x = int((bbox[0] + bbox[2]) / 2)
+                            y = int((bbox[1] + bbox[3]) / 2)
+                    if x is None or y is None:
+                        raise ValueError("Click action missing coordinates and resolvable element_id")
                     record = self.toolbox.click(
-                        action.coordinates[0],
-                        action.coordinates[1],
+                        x,
+                        y,
                         explanation=action.explanation,
                         bbox=tuple(action.bbox) if action.bbox else None,
                     )

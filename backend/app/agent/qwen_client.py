@@ -147,9 +147,14 @@ class GPTPlanner:
             "Insert a wait action if you need to pause.\n"
             "- Use keyboard shortcuts when faster (Ctrl+T, Ctrl+L, Ctrl+C/V, Alt+Tab, etc.).\n"
             "- Treat prior log entries like \"User clicked Go\" as confirmation that the Visual Agent panel has already been launched.\n"
+            "- After every critical action (navigation, submit, open document), inspect the updated OmniParser context. "
+            "If the screen still looks the same or the expected element is missing, try an alternative approach instead of declaring success.\n"
             "- Handle broad user requests independently—choose an appropriate search result or workflow without asking for preferences "
             "unless the user explicitly required a choice.\n"
+            "- Prefer interacting with actual buttons/inputs rather than surrounding text labels; if text isn’t clickable, locate the nearest actionable element.\n"
             "- Ask for clarification only when the user’s request truly cannot be completed from the current UI.\n"
+            "- Only set should_continue=false when the latest screenshot/analysis clearly shows the user’s goal is complete "
+            "(e.g., logged-in dashboard visible, blank document loaded, item added to cart). If unsure, keep should_continue=true.\n"
         )
 
         user_message = {

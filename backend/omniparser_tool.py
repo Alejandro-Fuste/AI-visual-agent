@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import requests
-from PIL import Image
+from PIL import Image, ImageDraw, ImageFont
 
 
 class OmniParserError(RuntimeError):
@@ -95,6 +95,40 @@ class OmniParserClient:
 def get_screen_elements(image_path: str | Path) -> List[Dict[str, Any]]:
     client = OmniParserClient()
     return client.analyze(image_path)["elements"]
+
+
+def draw_omniparser_boxes(
+    image_path: str | Path,
+    elements: List[Dict[str, Any]],
+    output_path: str | Path,
+) -> None:
+    """Overlay OmniParser bounding boxes on a screenshot for debugging."""
+    src = Path(image_path)
+    dst = Path(output_path)
+    if not src.exists():
+        raise FileNotFoundError(f"Screenshot not found: {src}")
+
+    with Image.open(src).convert("RGB") as img:
+        draw = ImageDraw.Draw(img)
+        font = None
+        try:
+            font = ImageFont.load_default()
+        except Exception:
+            font = None
+
+        for elem in elements:
+            bbox = elem.get("bbox")
+            if not bbox or len(bbox) != 4:
+                continue
+            x1, y1, x2, y2 = bbox
+            draw.rectangle((x1, y1, x2, y2), outline="red", width=2)
+            label = f"{elem.get('element_id')}:{elem.get('type','')}"
+            if font:
+                draw.rectangle((x1, max(0, y1 - 14), x1 + len(label) * 6, y1), fill="red")
+                draw.text((x1 + 2, y1 - 12), label, fill="white", font=font)
+
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        img.save(dst)
 
 
 if __name__ == "__main__":

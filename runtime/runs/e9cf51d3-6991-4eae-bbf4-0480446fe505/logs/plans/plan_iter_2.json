@@ -1,6 +1,0 @@
-{
-  "thinking": "Open a new browser tab, go to Google, search for \"AI agents article\", and capture a screenshot of the results so I can pick an article to open \u2014 I'll log the start and wait for pages to load. I won't interact with the Visual Agent panel (it already ran).",
-  "should_continue": true,
-  "needs_user_input": false,
-  "actions": []
-}

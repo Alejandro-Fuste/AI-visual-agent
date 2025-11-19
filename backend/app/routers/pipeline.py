@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+import re
 from pathlib import Path
 from uuid import uuid4
 
@@ -15,6 +16,25 @@ router = APIRouter(prefix="/api", tags=["pipeline"])
 RUNS: dict[str, dict] = {}
 
 
+def _slugify_prompt(prompt: str, max_length: int = 40) -> str:
+    slug = re.sub(r"[^a-z0-9]+", "-", prompt.lower()).strip("-")
+    if not slug:
+        slug = "run"
+    return slug[:max_length]
+
+
+def _build_run_directory(prompt: str) -> Path:
+    timestamp = datetime.utcnow().strftime("%Y%m%d-%H%M%S")
+    slug = _slugify_prompt(prompt)
+    base_name = f"{timestamp}-{slug}"
+    run_dir = (settings.AGENT_RUNS_DIR / base_name).resolve()
+    counter = 1
+    while run_dir.exists():
+        run_dir = (settings.AGENT_RUNS_DIR / f"{base_name}-{counter}").resolve()
+        counter += 1
+    return run_dir
+
+
 @router.post("/run", response_model=RunResponse)
 async def run_pipeline(
     background_tasks: BackgroundTasks,
@@ -22,7 +42,7 @@ async def run_pipeline(
     file: UploadFile | None = File(None),
 ):
     run_id = str(uuid4())
-    run_dir = (settings.AGENT_RUNS_DIR / run_id).resolve()
+    run_dir = _build_run_directory(prompt)
     screenshots_dir = run_dir / "screenshots"
     logs_dir = run_dir / "logs"
     pipeline_dir = run_dir / "pipeline"

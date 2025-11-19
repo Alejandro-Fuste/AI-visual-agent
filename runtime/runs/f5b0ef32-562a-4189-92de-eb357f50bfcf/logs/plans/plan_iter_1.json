@@ -1,6 +1,0 @@
-{
-  "thinking": "The Visual Agent modal is asking for additional info. I'll enter that I want a web link to an article (no preferred sources) and submit so the agent can continue the web search and return a link.",
-  "should_continue": false,
-  "needs_user_input": false,
-  "actions": []
-}

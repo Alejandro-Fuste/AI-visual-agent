@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from agent_tools import ActionRecord, AgentToolbox
-from omniparser_tool import OmniParserClient, OmniParserError
+from omniparser_tool import OmniParserClient, OmniParserError, draw_omniparser_boxes
 
 from app.agent.models import AgentResult, PlannedAction
 from app.agent.qwen_client import QwenPlanner, QwenPlannerError
@@ -44,6 +44,8 @@ class VisualAgentEngine:
         )
         self.plan_log_dir = (log_dir / "plans").resolve()
         self.plan_log_dir.mkdir(parents=True, exist_ok=True)
+        self.omniparser_debug_dir = (log_dir / "omniparser").resolve()
+        self.omniparser_debug_dir.mkdir(parents=True, exist_ok=True)
         self.omniparser = OmniParserClient(api_url=omniparser_url, api_token=omniparser_token)
         self.planner = QwenPlanner(
             api_key=openai_api_key,
@@ -65,6 +67,7 @@ class VisualAgentEngine:
         action_history: List[Dict[str, Any]] = []
         latest_elements: List[Dict[str, Any]] = []
         plan_payload: Dict[str, Any] = {}
+        pending_perception: Optional[Dict[str, Any]] = None
 
         start_record = ActionRecord(
             action="info",
@@ -86,10 +89,16 @@ class VisualAgentEngine:
         try:
             for iteration in range(self.max_iterations):
                 try:
-                    perception = self.omniparser.analyze(screenshot_path)
+                    if pending_perception is not None:
+                        perception = pending_perception
+                        pending_perception = None
+                    else:
+                        perception = self.omniparser.analyze(screenshot_path)
                 except (OmniParserError, FileNotFoundError) as exc:
                     raise RuntimeError(f"Perception stage failed: {exc}") from exc
                 latest_elements = perception.get("elements", [])
+                self._write_omniparser_debug(screenshot_path, latest_elements, iteration, prefix="pre")
+                before_elements = latest_elements.copy()
 
                 try:
                     planner_response = self.planner.plan_actions(
@@ -126,15 +135,39 @@ class VisualAgentEngine:
                 if self.action_pause:
                     time.sleep(self.action_pause)
 
-                if not planner_response.should_continue:
-                    break
+                post_shot = self.toolbox.take_screenshot(f"run_{self.run_id}_{iteration}_post")
+                post_path = post_shot.metadata.get("path")
+                if not post_path:
+                    raise RuntimeError("Failed to capture verification screenshot")
+                screenshot_path = Path(post_path)
+                screenshots.append(screenshot_path.as_posix())
 
-                shot = self.toolbox.take_screenshot(f"run_{self.run_id}_{iteration}")
-                next_path = shot.metadata.get("path")
-                if next_path:
-                    screenshot_path = Path(next_path)
-                    screenshots.append(screenshot_path.as_posix())
+                try:
+                    post_perception = self.omniparser.analyze(screenshot_path)
+                except (OmniParserError, FileNotFoundError) as exc:
+                    raise RuntimeError(f"Perception verification failed: {exc}") from exc
+
+                pending_perception = post_perception
+                after_elements = post_perception.get("elements", [])
+                self._write_omniparser_debug(screenshot_path, after_elements, iteration, prefix="post")
+                latest_elements = after_elements
+
+                significant_actions = any(a.tool not in {"wait", "screenshot", "annotate"} for a in planner_response.actions)
+                state_changed = self._state_changed(before_elements, after_elements)
+                if significant_actions and not state_changed:
+                    info_record = self.toolbox.log_action(
+                        ActionRecord(
+                            action="info",
+                            message="Previous plan produced no visible change; retrying with a different approach.",
+                        )
+                    )
+                    action_history.append(info_record.to_dict())
+                    planner_response.should_continue = True
+                    plan_payload["state_change_detected"] = False
                 else:
+                    plan_payload["state_change_detected"] = True
+
+                if not planner_response.should_continue:
                     break
 
             final_message = plan_payload.get("thinking", "Action plan completed")
@@ -224,3 +257,23 @@ class VisualAgentEngine:
         except Exception:
             pass
 
+    def _state_changed(self, before: List[Dict[str, Any]], after: List[Dict[str, Any]]) -> bool:
+        def summarize(elements: List[Dict[str, Any]]) -> set[tuple[str, tuple[int, ...]]]:
+            summary = set()
+            for elem in elements[:80]:
+                text = (elem.get("text") or "").strip()
+                bbox = elem.get("bbox") or []
+                bbox_tuple = tuple(int(x) for x in bbox[:4])
+                summary.add((text, bbox_tuple))
+            return summary
+
+        before_summary = summarize(before)
+        after_summary = summarize(after)
+        return before_summary != after_summary
+
+    def _write_omniparser_debug(self, screenshot_path: Path, elements: List[Dict[str, Any]], iteration: int, prefix: str) -> None:
+        try:
+            out_path = self.omniparser_debug_dir / f"{prefix}_iter_{iteration + 1}.png"
+            draw_omniparser_boxes(screenshot_path, elements, out_path)
+        except Exception:
+            pass

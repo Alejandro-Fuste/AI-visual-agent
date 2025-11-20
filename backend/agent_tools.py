@@ -183,6 +183,7 @@ class AgentToolbox:
         self.overlay = OverlayController(enabled=enable_overlay)
         self.dry_run = dry_run
         self.history: List[ActionRecord] = []
+        self._active_annotations = 0
 
     # ------------------------------------------------------------------
     # Core API
@@ -255,14 +256,18 @@ class AgentToolbox:
         return self.log_action(record)
 
     def annotate(self, bbox: BBox, text: str, color: Tuple[int, int, int, int] = (0, 255, 0, 180)) -> ActionRecord:
+        if self._active_annotations >= 3:
+            self.clear_overlay()
         rect = (bbox[0], bbox[1], bbox[2] - bbox[0], bbox[3] - bbox[1])
         self.overlay.draw_box(rect, color)
         self.overlay.draw_text((bbox[0], max(bbox[1] - 20, 0)), text, color)
         record = ActionRecord(action="annotate", message=text, metadata={"bbox": bbox})
+        self._active_annotations += 1
         return self.log_action(record)
 
     def clear_overlay(self) -> None:
         self.overlay.clear()
+        self._active_annotations = 0
 
     def take_screenshot(self, label: str = "capture") -> ActionRecord:
         timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")

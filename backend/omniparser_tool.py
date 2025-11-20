@@ -21,8 +21,8 @@ class OmniParserClient:
         self,
         api_url: Optional[str] = None,
         api_token: Optional[str] = None,
-        bbox_threshold: float = 0.01,
-        iou_threshold: float = 0.3,
+        bbox_threshold: float = 0.001,
+        iou_threshold: float = 0.4,
         session: Optional[requests.Session] = None,
     ) -> None:
         self.api_url = api_url or os.getenv("HF_OMNIPARSER_URL")

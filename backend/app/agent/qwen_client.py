@@ -148,6 +148,7 @@ class GPTPlanner:
             "- Use keyboard shortcuts when faster (Ctrl+T, Ctrl+L, Ctrl+C/V, Alt+Tab, etc.).\n"
             "- Treat prior log entries like \"User clicked Go\" as confirmation that the Visual Agent panel has already been launched.\n"
             "- Always open a new browser tab (Ctrl+T) before navigating to a site or performing a request; do not reuse tabs containing the Visual Agent UI.\n"
+            "- When you need to interact with the Visual Agent UI (reprompt the user, review status), switch back to the browser tab titled \"frontend\" before typing; never perform user tasks inside that tab.\n"
             "- After every critical action (navigation, submit, open document), inspect the updated OmniParser context. "
             "If the screen still looks the same or the expected element is missing, try an alternative approach instead of declaring success.\n"
             "- Handle broad user requests independently—choose an appropriate search result or workflow without asking for preferences "

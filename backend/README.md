@@ -2,7 +2,7 @@
 
 FastAPI service that exposes the visual agent pipeline to the frontend. It wraps the following subsystems:
 
-1. **Perception** – grabs screenshots (or uploaded files) and calls the hosted OmniParser endpoint via `omniparser_tool.OmniParserClient`.
+1. **Perception** – grabs live screenshots and calls the hosted OmniParser endpoint via `omniparser_tool.OmniParserClient`.
 2. **Planning** – feeds screenshots, parsed elements, and action history to GPT-5 via native OpenAI tool-calling, which returns structured action payloads.
 3. **Action execution** – dispatches each planned tool to `AgentToolbox` (PyAutoGUI-based desktop controller) which also renders overlays, captures new screenshots, and logs every action.
 4. **Conversation loop** – orchestrated inside `app/agent/engine.py` with configurable iterations. If the planner asks for clarification it pauses, waits for `/api/reprompt`, then resumes with the extra context.
@@ -13,7 +13,7 @@ See `.env.example` for the required variables:
 - `HF_OMNIPARSER_URL` / `HF_API_TOKEN`
 - `OPENAI_API_KEY`, `OPENAI_BASE_URL`, `OPENAI_MODEL`, `OPENAI_TEMPERATURE`
 - Agent behavior toggles (`AGENT_MAX_ITERATIONS`, `AGENT_ENABLE_OVERLAY`, `AGENT_DRY_RUN`, `AGENT_ACTION_PAUSE`)
-- Storage root: `AGENT_RUNS_DIR` (default `runtime/runs`) which holds per-run `screenshots`, `logs`, `pipeline`, and `uploads` folders.
+- Storage root: `AGENT_RUNS_DIR` (default `runtime/runs`) which holds per-run `screenshots`, `logs`, and `pipeline` folders.
 
 Create `.env`, then install dependencies:
 
@@ -28,7 +28,7 @@ uvicorn app.main:app --reload
 | Endpoint | Verb | Description |
 | --- | --- | --- |
 | `/health` | GET | Basic health probe |
-| `/api/run` | POST (multipart) | Starts an agent run with `prompt` and optional file upload. Returns `run_id`. |
+| `/api/run` | POST (JSON) | Starts an agent run with `prompt`. Returns `run_id`. |
 | `/api/status/{run_id}` | GET | Poll run status, logs, final result, and pending questions. |
 | `/api/reprompt` | POST | Submit additional user input when the agent status is `needs_input`. |
 
@@ -44,7 +44,7 @@ uvicorn app.main:app --reload
 - `runtime/runs/<run_id>/screenshots` – captured evidence for that run
 - `runtime/runs/<run_id>/logs` – action log + status records
 - `runtime/runs/<run_id>/pipeline` – serialized FastAPI log history
-- `runtime/runs/<run_id>/uploads` – any files provided with the request
+
 
 ## Reprompt Flow
 When `needs_input` is returned, the backend stores the pending question and returns it via `/api/status`. The frontend opens a modal; once the user responds, the answer is appended to the run's clarification list and the pipeline restarts automatically with the same screenshot/file inputs.

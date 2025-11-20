@@ -1,9 +1,7 @@
 import { useState } from "react";
-import { apiFetch } from "../api";
 
 function PromptForm({ onRunStart }) {
   const [prompt, setPrompt] = useState("");
-  const [file, setFile] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -13,13 +11,10 @@ function PromptForm({ onRunStart }) {
     setError(null);
 
     try {
-      const formData = new FormData();
-      formData.append("prompt", prompt);
-      if (file) formData.append("file", file);
-
       const response = await fetch(`${import.meta.env.VITE_API_URL}/api/run`, {
         method: "POST",
-        body: formData,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt }),
       });
 
       if (!response.ok) {
@@ -29,13 +24,13 @@ function PromptForm({ onRunStart }) {
 
       const data = await response.json();
       onRunStart(data.run_id);
+      setPrompt("");
     } catch (err) {
       setError(err.message);
     } finally {
       setLoading(false);
     }
   };
-
 
   return (
     <form
@@ -54,16 +49,6 @@ function PromptForm({ onRunStart }) {
           onChange={(e) => setPrompt(e.target.value)}
           rows={3}
           required
-          
-        />
-      </label>
-
-      <label>
-        Upload file (optional):
-        <input
-          type="file"
-          onChange={(e) => setFile(e.target.files[0])}
-          accept="image/*,.pdf"
         />
       </label>
 
@@ -82,7 +67,6 @@ function PromptForm({ onRunStart }) {
         }}
         onMouseEnter={(e) => (e.target.style.background = "#fbc46b")}
         onMouseLeave={(e) => (e.target.style.background = "#faaa47")}
-
       >
         {loading ? "Running..." : "Go"}
       </button>

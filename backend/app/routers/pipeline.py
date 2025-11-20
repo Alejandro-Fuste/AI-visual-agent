@@ -5,7 +5,7 @@ import re
 from pathlib import Path
 from uuid import uuid4
 
-from fastapi import APIRouter, BackgroundTasks, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, BackgroundTasks, HTTPException, Body
 
 from app.config import settings
 from app.pipeline.runner import run_full_pipeline
@@ -38,32 +38,24 @@ def _build_run_directory(prompt: str) -> Path:
 @router.post("/run", response_model=RunResponse)
 async def run_pipeline(
     background_tasks: BackgroundTasks,
-    prompt: str = Form(...),
-    file: UploadFile | None = File(None),
+    payload: dict = Body(...),
 ):
+    prompt = payload.get("prompt", "").strip()
+    if not prompt:
+        raise HTTPException(status_code=400, detail="prompt is required")
     run_id = str(uuid4())
     run_dir = _build_run_directory(prompt)
     screenshots_dir = run_dir / "screenshots"
     logs_dir = run_dir / "logs"
     pipeline_dir = run_dir / "pipeline"
-    uploads_dir = run_dir / "uploads"
-    for path in [run_dir, screenshots_dir, logs_dir, pipeline_dir, uploads_dir]:
+    for path in [run_dir, screenshots_dir, logs_dir, pipeline_dir]:
         path.mkdir(parents=True, exist_ok=True)
-
-    file_path = None
-
-    if file:
-        destination = uploads_dir / file.filename
-        with destination.open("wb") as f:
-            f.write(await file.read())
-        file_path = str(destination)
 
     RUNS[run_id] = {
         "status": "running",
         "logs": [LogEntry(stage="queued", message="Run submitted", timestamp=datetime.utcnow())],
         "result": None,
         "prompt": prompt,
-        "file_path": file_path,
         "clarifications": [],
         "pending_question": None,
         "run_dir": str(run_dir),
@@ -73,7 +65,6 @@ async def run_pipeline(
         real_pipeline,
         run_id,
         prompt,
-        file_path,
         str(run_dir),
         RUNS[run_id]["clarifications"].copy(),
     )
@@ -89,11 +80,10 @@ async def run_pipeline(
 def real_pipeline(
     run_id: str,
     prompt: str,
-    file_path: str | None = None,
     run_dir: str | Path | None = None,
     clarifications: list[str] | None = None,
 ):
-    result = run_full_pipeline(run_id, prompt, file_path, clarifications=clarifications, run_dir=run_dir)
+    result = run_full_pipeline(run_id, prompt, clarifications=clarifications, run_dir=run_dir)
     run = RUNS.get(run_id)
     if not run:
         return
@@ -133,7 +123,6 @@ async def handle_reprompt(payload: RepromptRequest, background_tasks: Background
         real_pipeline,
         payload.run_id,
         run["prompt"],
-        run.get("file_path"),
         run.get("run_dir"),
         run["clarifications"].copy(),
     )

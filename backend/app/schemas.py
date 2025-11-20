@@ -12,13 +12,6 @@ class LogEntry(BaseModel):
     timestamp: datetime = Field(default_factory=datetime.utcnow)
 
 
-class RunRequest(BaseModel):
-    prompt: str
-    file_path: Optional[str] = None
-    allow_reprompt: bool = True
-    options: Optional[dict] = None
-
-
 class RunResponse(BaseModel):
     run_id: str
     status: Literal["queued", "running", "success", "error", "needs_input"]

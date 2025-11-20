@@ -44,7 +44,7 @@ npm run dev
 ```
 
 Visit `http://localhost:5173`, enter a task, and hit **Go**. The backend will:
-1. Capture (or reuse uploaded) screenshots.
+1. Capture the current desktop screenshot.
 2. Call OmniParser for bounding boxes/labels.
 3. Feed the structured elements to GPT-5 via tool-calling to obtain an action plan.
 4. Execute the actions with PyAutoGUI, annotate the screen, and log everything.

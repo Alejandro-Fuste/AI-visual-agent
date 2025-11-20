@@ -1,7 +1,7 @@
 # Visual Agent Frontend
 
 The **Visual Agent Frontend** is a React + Vite web interface that allows users to interact with the **Visual Agent AI system**.  
-It lets users submit prompts or upload screenshots/documents to the backend, which triggers the AI pipeline (YOLO → BLIP → LLM reasoning → results).
+It lets users submit prompts to the backend, which triggers the AI pipeline (YOLO → BLIP → LLM reasoning → results).
 
 This interface provides a simple, modern UI for testing and visualizing the AI workflow.
 
@@ -31,7 +31,7 @@ frontend/
 │   ├── components/        # Reusable React components
 │   │   ├── BrandHeader.jsx   # Logo + project title header
 │   │   ├── LeftColumn.jsx    # Intro text, CTA, and branding area
-│   │   └── PromptForm.jsx    # Main form for prompt + file upload
+│   │   └── PromptForm.jsx    # Main form for prompt submission
 │   │
 │   ├── App.jsx            # Main app layout (Left + Right sections)
 │   ├── App.module.css     # Scoped CSS module for page layout
@@ -118,7 +118,7 @@ API calls are defined in `src/api.js`:
 * **Responsive two-column layout** (intro text on the left, AI form on the right)
 * **Modern UI** with soft color palette and animations
 * **Logo + project branding** via `BrandHeader.jsx`
-* **Interactive prompt form** (accepts text + optional file upload)
+* **Interactive prompt form** (accepts text prompts)
 * **Status log output** for tracking pipeline progress
 
 ---
@@ -161,7 +161,7 @@ The app uses a **modular CSS structure**:
 | ------------------- | ------------------------------------------------------------------- |
 | **BrandHeader.jsx** | Displays the project logo and title (top-left).                     |
 | **LeftColumn.jsx**  | Shows the welcome message, description, and call to action.         |
-| **PromptForm.jsx**  | Handles user input, file upload, and communicates with the backend. |
+| **PromptForm.jsx**  | Handles user input and communicates with the backend. |
 
 ---
 
@@ -188,7 +188,6 @@ The app uses a **modular CSS structure**:
 | ------------------------------------ | ---------------------------------------------------------------- |
 | Frontend cannot reach backend        | Ensure backend is running on port `8000` and `.env` file matches |
 | Button colors or layout not updating | Stop server and restart with `npm run dev` (Vite caches styles)  |
-| File uploads not working             | Verify backend `/uploads` directory exists and is writable       |
 
 ---
 

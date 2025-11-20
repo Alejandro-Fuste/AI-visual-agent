@@ -59,7 +59,6 @@ class VisualAgentEngine:
         self,
         prompt: str,
         *,
-        file_path: Optional[str] = None,
         clarifications: Optional[List[str]] = None,
     ) -> AgentResult:
         clarifications = clarifications or []
@@ -78,13 +77,9 @@ class VisualAgentEngine:
         action_history.append(logged_start.to_dict())
 
         instruction = self._compose_instruction(prompt, clarifications)
-        screenshot_path = Path(file_path) if file_path else None
-        if screenshot_path is None:
-            shot = self.toolbox.take_screenshot(f"run_{self.run_id}_start")
-            screenshot_path = Path(shot.metadata.get("path"))
-            screenshots.append(screenshot_path.as_posix())
-        else:
-            screenshots.append(screenshot_path.as_posix())
+        shot = self.toolbox.take_screenshot(f"run_{self.run_id}_start")
+        screenshot_path = Path(shot.metadata.get("path"))
+        screenshots.append(screenshot_path.as_posix())
 
         try:
             for iteration in range(self.max_iterations):

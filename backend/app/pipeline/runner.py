@@ -13,7 +13,6 @@ from app.schemas import LogEntry
 def run_full_pipeline(
     run_id: str,
     prompt: str,
-    file_path: Optional[str] = None,
     clarifications: Optional[List[str]] = None,
     run_dir: Optional[Path] = None,
 ):
@@ -49,7 +48,7 @@ def run_full_pipeline(
             openai_temperature=settings.OPENAI_TEMPERATURE,
             action_pause=settings.AGENT_ACTION_PAUSE,
         )
-        agent_result = engine.run(prompt, file_path=file_path, clarifications=clarifications)
+        agent_result = engine.run(prompt, clarifications=clarifications)
         result_payload = {
             "final_message": agent_result.final_message,
             "actions": agent_result.actions,

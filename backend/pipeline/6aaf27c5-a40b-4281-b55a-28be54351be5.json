@@ -1,0 +1,12 @@
+[
+  {
+    "stage": "init",
+    "message": "Pipeline started for prompt: Use google to find me an article on AI agents.",
+    "timestamp": "2025-11-17 18:50:57.282512"
+  },
+  {
+    "stage": "error",
+    "message": "Perception stage failed: OmniParser request failed: 503 {\"error\":\"503 Service Unavailable\"}",
+    "timestamp": "2025-11-17 18:50:58.134045"
+  }
+]

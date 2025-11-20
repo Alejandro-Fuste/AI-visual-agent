@@ -183,6 +183,7 @@ class AgentToolbox:
         self.overlay = OverlayController(enabled=enable_overlay)
         self.dry_run = dry_run
         self.history: List[ActionRecord] = []
+        self._active_annotations = 0
 
     # ------------------------------------------------------------------
     # Core API
@@ -207,12 +208,14 @@ class AgentToolbox:
             record.error = str(exc)
         return self.log_action(record)
 
-    def type_text(self, x: int, y: int, text: str, explanation: Optional[str] = None) -> ActionRecord:
-        record = ActionRecord(action="type", message=explanation or f"Type '{text}'", coords=(x, y), metadata={"text": text})
+    def type_text(self, x: Optional[int], y: Optional[int], text: str, explanation: Optional[str] = None) -> ActionRecord:
+        coords = (x, y) if x is not None and y is not None else None
+        record = ActionRecord(action="type", message=explanation or f"Type '{text}'", coords=coords, metadata={"text": text})
         try:
             if not self.dry_run:
-                pyautogui.click(x, y)
-                time.sleep(0.1)
+                if x is not None and y is not None:
+                    pyautogui.click(x, y)
+                    time.sleep(0.1)
                 pyautogui.write(text, interval=0.05)
         except Exception as exc:
             record.success = False
@@ -240,15 +243,31 @@ class AgentToolbox:
             record.error = str(exc)
         return self.log_action(record)
 
+    def shortcut(self, keys: Sequence[str], explanation: Optional[str] = None) -> ActionRecord:
+        normalized = [str(key).strip() for key in keys if str(key).strip()]
+        combo = " + ".join(normalized) if normalized else "shortcut"
+        record = ActionRecord(action="shortcut", message=explanation or f"Press {combo}", metadata={"keys": normalized})
+        try:
+            if not self.dry_run and normalized:
+                pyautogui.hotkey(*normalized)
+        except Exception as exc:
+            record.success = False
+            record.error = str(exc)
+        return self.log_action(record)
+
     def annotate(self, bbox: BBox, text: str, color: Tuple[int, int, int, int] = (0, 255, 0, 180)) -> ActionRecord:
+        if self._active_annotations >= 3:
+            self.clear_overlay()
         rect = (bbox[0], bbox[1], bbox[2] - bbox[0], bbox[3] - bbox[1])
         self.overlay.draw_box(rect, color)
         self.overlay.draw_text((bbox[0], max(bbox[1] - 20, 0)), text, color)
         record = ActionRecord(action="annotate", message=text, metadata={"bbox": bbox})
+        self._active_annotations += 1
         return self.log_action(record)
 
     def clear_overlay(self) -> None:
         self.overlay.clear()
+        self._active_annotations = 0
 
     def take_screenshot(self, label: str = "capture") -> ActionRecord:
         timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")

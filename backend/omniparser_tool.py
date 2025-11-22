@@ -1,3 +1,5 @@
+# Developed by Joshua Yu and Umaima Khan
+
 from __future__ import annotations
 
 """Client for calling the hosted OmniParser model on Hugging Face."""

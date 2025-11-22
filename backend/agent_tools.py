@@ -1,3 +1,4 @@
+# Developed by Joshua Yu
 from __future__ import annotations
 
 """Utilities for desktop automation with visual explanations."""

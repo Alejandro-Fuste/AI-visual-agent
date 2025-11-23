@@ -168,7 +168,7 @@ class ActionLogger:
         return self.log_path.read_text(encoding="utf-8")
 
 
-# Developed by Rodrigo Vena - Output Mapping: OmniTools Suite
+# Developed by Rodrigo Vena - Output Mapping
 # Translates logical predicates (PlannedAction) into physical interactions within the browser.
 class AgentToolbox:
     """High-level helper used by the visual agent to act on the desktop."""

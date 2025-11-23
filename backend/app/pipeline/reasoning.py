@@ -1,3 +1,4 @@
+# Developed by Alejandro Fuste
 def analyze_elements(perception_output):
     print("Running BLIP reasoning step...")
     # TODO: integrate actual semantic reasoning

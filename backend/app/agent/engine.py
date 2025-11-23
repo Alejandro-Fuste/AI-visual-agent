@@ -12,6 +12,8 @@ from app.agent.models import AgentResult, PlannedAction
 from app.agent.qwen_client import QwenPlanner, QwenPlannerError
 
 
+# Developed by Rodrigo Vena - Architecture and Flow Control
+# Central controller that manages the data pipeline between perception (OmniParser) and reasoning (LLM/VLM).
 class VisualAgentEngine:
     def __init__(
         self,

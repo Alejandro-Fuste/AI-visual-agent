@@ -12,6 +12,8 @@ BASE_DIR = Path(__file__).resolve().parents[2]
 RUNTIME_DIR = BASE_DIR / "runtime"
 
 
+# Developed by Rodrigo Vena - Performance Analysis and Model Selection
+# Configuration for model selection (e.g., GPT-5 via Azure, Phi-4 local fallback) based on benchmarking results.
 class Settings(BaseModel):
     APP_NAME: str = os.getenv("APP_NAME", "visual-agent-backend")
     ENV: str = os.getenv("ENV", "dev")

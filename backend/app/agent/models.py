@@ -14,6 +14,8 @@ class ScreenElement:
     confidence: float
 
 
+# Developed by Rodrigo Vena - Output Mapping
+# Structured JSON object representing the plan, mapping logical primitives to browser automation commands.
 @dataclass
 class PlannedAction:
     tool: str

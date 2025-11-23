@@ -12,6 +12,8 @@ from openai import OpenAI, OpenAIError
 
 from .models import PlannedAction, PlannerResponse
 
+# Developed by Rodrigo Vena - Logic-Driven Action Generation
+# Defines the structured output format (predicate-like actions) to ensure deterministic plans.
 RUN_ACTIONS_TOOL = {
     "type": "function",
     "function": {
@@ -138,6 +140,9 @@ class GPTPlanner:
                 }
             )
 
+        # Developed by Rodrigo Vena - Logic-Driven Action Generation
+        # Prompt engineering to condition the LLM to function as a reasoning engine,
+        # analyzing the relationship between UI elements and user goals.
         system_prompt = (
             "You are Vision Form Agent, a careful desktop task planner.\n"
             "1. Inputs: latest screenshot (base64 image), parsed OmniParser elements array, "

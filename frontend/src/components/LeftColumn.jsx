@@ -1,3 +1,4 @@
+// Developed by Alejandro Fuste
 // src/components/LeftColumn.jsx
 import styles from "../App.module.css";
 

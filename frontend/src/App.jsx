@@ -1,3 +1,4 @@
+// Developed by Alejandro Fuste
 import { useEffect, useState } from "react";
 import LeftColumn from "./components/LeftColumn";
 import PromptForm from "./components/PromptForm";

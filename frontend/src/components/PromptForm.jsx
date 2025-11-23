@@ -1,3 +1,4 @@
+// Developed by Alejandro Fuste
 import { useState } from "react";
 
 function PromptForm({ onRunStart }) {

@@ -1,3 +1,4 @@
+# Developed by Alejandro Fuste and Josh Yu
 from __future__ import annotations
 
 import json

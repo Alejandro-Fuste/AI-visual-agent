@@ -1,3 +1,4 @@
+// Developed by Alejandro Fuste
 import styles from "../App.module.css";
 
 function BrandHeader() {

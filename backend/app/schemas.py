@@ -1,3 +1,4 @@
+# Developed by Alejandro Fuste
 from __future__ import annotations
 
 from datetime import datetime

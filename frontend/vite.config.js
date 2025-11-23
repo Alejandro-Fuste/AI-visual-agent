@@ -1,3 +1,4 @@
+// Developed by Alejandro Fuste
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 

@@ -1,3 +1,34 @@
+"""
+=============================================================================
+REST API Router for Visual Agent Pipeline
+Developer: Alejandro Fuste, Karthika Ramasamy
+=============================================================================
+
+Implements FastAPI endpoints that manage the complete lifecycle of agent runs.
+
+Endpoints:
+- POST /api/run: Initiates new agent run with prompt + optional file upload
+- GET /api/status/{run_id}: Polls run status, logs, results
+- POST /api/reprompt: Submits user clarification for interactive flow
+
+Key Responsibilities:
+- Asynchronous pipeline execution via BackgroundTasks
+- Per-run directory structure creation (screenshots/, logs/, pipeline/)
+- In-memory RUNS dictionary for real-time status tracking
+- Interactive reprompt flow for user clarification
+- Request-response cycle orchestration
+
+Data Flow:
+1. Frontend submits to /api/run → unique run_id generated
+2. Background task launches full pipeline (perception → reasoning → action)
+3. Frontend polls /api/status for updates
+4. If clarification needed, frontend submits via /api/reprompt
+5. Pipeline resumes with updated context
+
+Integration Point: Entry point for all client interactions with agent system
+=============================================================================
+"""
+
 # Developed by Alejandro Fuste
 from __future__ import annotations
 
@@ -62,6 +93,12 @@ async def run_pipeline(
         "run_dir": str(run_dir),
     }
 
+    # ===========================================================================
+    # PIPELINE ORCHESTRATION
+    # ===========================================================================
+    # Launch asynchronous background task to run full agent pipeline
+    # This allows frontend to immediately receive run_id while processing continues
+    # Pipeline will update RUNS[run_id] with status, logs, and results
     background_tasks.add_task(
         real_pipeline,
         run_id,
@@ -108,6 +145,11 @@ async def get_status(run_id: str):
     )
 
 
+# ===========================================================================
+# REPROMPT FLOW
+# ===========================================================================
+# Interactive clarification flow: when agent needs input, it pauses and waits
+# Frontend submits user response here, pipeline resumes with updated context
 @router.post("/reprompt", response_model=RepromptResponse)
 async def handle_reprompt(payload: RepromptRequest, background_tasks: BackgroundTasks):
     run = RUNS.get(payload.run_id)
@@ -120,6 +162,11 @@ async def handle_reprompt(payload: RepromptRequest, background_tasks: Background
     run["pending_question"] = None
     run["status"] = "running"
 
+    # ===========================================================================
+    # RESTART PIPELINE WITH CLARIFICATION
+    # ===========================================================================
+    # User provided input - restart pipeline with clarification appended
+    # Agent will resume from last state with additional context
     background_tasks.add_task(
         real_pipeline,
         payload.run_id,

@@ -1,3 +1,4 @@
+# Developed by Alejandro Fuste
 def generate_actions(prompt, reasoning_output):
     print("Running LangChain LLM agent...")
     # TODO: integrate actual LangChain or GPT model

@@ -6,32 +6,96 @@ import os
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-import requests
+from openai import OpenAI, OpenAIError
 
 from .models import PlannedAction, PlannerResponse
 
+RUN_ACTIONS_TOOL = {
+    "type": "function",
+    "function": {
+        "name": "run_desktop_actions",
+        "description": "Plan the exact desktop actions to execute next. Always include at least one action.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "thinking": {"type": "string", "description": "Concise reasoning for the next steps."},
+                "should_continue": {"type": "boolean", "description": "True when another perception cycle is required."},
+                "needs_user_input": {
+                    "type": "boolean",
+                    "description": "Only true when progress is impossible without clarification.",
+                },
+                "user_question": {
+                    "type": ["string", "null"],
+                    "description": "Question to show the user when needs_user_input is true.",
+                },
+                "actions": {
+                    "type": "array",
+                    "description": "Sequential actions to execute immediately.",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "tool": {
+                                "type": "string",
+                                "enum": ["click", "type", "scroll", "wait", "annotate", "screenshot", "shortcut"],
+                            },
+                            "explanation": {
+                                "type": "string",
+                                "description": "Why this action is required (shown in the UI log).",
+                            },
+                            "coordinates": {
+                                "type": "array",
+                                "description": "Pixel coordinates [x, y] for click/type actions.",
+                                "items": {"type": "number"},
+                                "minItems": 2,
+                                "maxItems": 2,
+                            },
+                            "element_id": {"type": ["integer", "null"], "description": "OmniParser element id if referenced."},
+                            "value": {"type": ["string", "null"], "description": "Text to type or paste."},
+                            "keys": {
+                                "type": "array",
+                                "items": {"type": "string"},
+                                "description": "Keyboard combo for shortcut actions (e.g., [\"ctrl\", \"t\"]).",
+                            },
+                            "amount": {"type": ["integer", "null"], "description": "Scroll delta (positive=up, negative=down)."},
+                            "wait_seconds": {"type": ["number", "null"], "description": "Duration for wait actions."},
+                            "bbox": {
+                                "type": "array",
+                                "items": {"type": "number"},
+                                "minItems": 4,
+                                "maxItems": 4,
+                                "description": "Bounding box [x1,y1,x2,y2] for annotate actions.",
+                            },
+                        },
+                        "required": ["tool", "explanation"],
+                    },
+                    "minItems": 1,
+                },
+            },
+            "required": ["thinking", "should_continue", "needs_user_input", "actions"],
+        },
+    },
+}
 
-class QwenPlannerError(RuntimeError):
+
+class GPTPlannerError(RuntimeError):
     pass
 
 
-class QwenPlanner:
+class GPTPlanner:
     def __init__(
         self,
         api_key: Optional[str] = None,
         api_base: Optional[str] = None,
         model: Optional[str] = None,
-        temperature: float = 0.15,
-        timeout: int = 90,
+        temperature: float = 0.0,
     ) -> None:
-        self.api_key = api_key or os.getenv("QWEN_API_KEY")
-        self.api_base = api_base or os.getenv("QWEN_API_BASE", "https://dashscope.aliyuncs.com/compatible-mode/v1")
-        self.model = model or os.getenv("QWEN_MODEL", "qwen2.5-vl-7b-instruct")
+        self.api_key = api_key or os.getenv("OPENAI_API_KEY") or os.getenv("QWEN_API_KEY")
+        self.api_base = api_base or os.getenv("OPENAI_BASE_URL") or os.getenv("QWEN_API_BASE", "https://api.openai.com/v1")
+        self.model = model or os.getenv("OPENAI_MODEL") or os.getenv("QWEN_MODEL", "gpt-4o-mini")
         if not self.api_key:
-            raise QwenPlannerError("QWEN_API_KEY is not configured")
+            raise GPTPlannerError("OPENAI_API_KEY is not configured")
         self.temperature = temperature
-        self.timeout = timeout
-        self.session = requests.Session()
+        self.client = OpenAI(api_key=self.api_key, base_url=self.api_base)
 
     def plan_actions(
         self,
@@ -39,73 +103,129 @@ class QwenPlanner:
         screenshot_path: str | Path,
         elements: List[Dict[str, Any]],
         action_history: List[Dict[str, Any]],
+        omniparser_payload: Optional[Dict[str, Any]] = None,
     ) -> PlannerResponse:
         image_b64 = self._encode_image(screenshot_path)
         history_text = self._history_to_text(action_history)
-        elements_json = json.dumps(elements[:60])
+        elements_json = json.dumps(elements, ensure_ascii=False)
 
-        user_prompt = (
-            f"User request:\n{instruction}\n\n"
-            f"Action history:\n{history_text or 'None yet.'}\n\n"
-            "Parsed UI elements (trimmed to 60):\n"
-            f"{elements_json}\n"
-        )
-
-        system_prompt = (
-            "You are a reasoning agent that plans precise desktop actions. "
-            "Always respond with a JSON object containing the keys "
-            "thinking, needs_user_input, user_question, should_continue, and actions.\n"
-            "Actions must be an array of tools with this schema:\n"
-            "[{\"tool\": \"click|type|scroll|wait|annotate|screenshot\", "
-            "\"coordinates\": [x, y], \"value\": \"text to type\", \"amount\": int, "
-            "\"bbox\": [x1,y1,x2,y2], \"element_id\": int, \"explanation\": \"why\"}]\n"
-            "Set needs_user_input true if more information is required and include the "
-            "question in user_question. Set should_continue to true if another "
-            "perception cycle is required after executing the actions."
-        )
-
-        messages = [
-            {"role": "system", "content": system_prompt},
+        element_chunks = self._chunk_text(elements_json)
+        user_segments: List[Dict[str, Any]] = [
             {
-                "role": "user",
-                "content": [
-                    {"type": "text", "text": user_prompt},
-                    {
-                        "type": "image_url",
-                        "image_url": {"url": f"data:image/png;base64,{image_b64}"},
-                    },
-                ],
+                "type": "text",
+                "text": "User request (include follow-up clarifications if provided):\n"
+                f"{instruction}\n",
+            },
+            {
+                "type": "text",
+                "text": f"Recent action history (most recent last):\n{history_text or 'None yet.'}\n",
+            },
+            {
+                "type": "text",
+                "text": "Reminder: The Visual Agent launcher panel or modal in the screenshot is not part of the task. "
+                "It simply shows status; never type into it, wait for it, or ask it for instructions. "
+                "Ignore it completely and focus on the desktop/browser content behind it.",
             },
         ]
 
-        payload = {
-            "model": self.model,
-            "messages": messages,
-            "temperature": self.temperature,
-            "response_format": {"type": "json_object"},
+        for idx, chunk in enumerate(element_chunks, start=1):
+            user_segments.append(
+                {
+                    "type": "text",
+                    "text": f"OmniParser elements chunk {idx}/{len(element_chunks)}:\n{chunk}",
+                }
+            )
+
+        system_prompt = (
+            "You are Vision Form Agent, a careful desktop task planner.\n"
+            "1. Inputs: latest screenshot (base64 image), parsed OmniParser elements array, "
+            "user request, and up to 10 recent action logs.\n"
+            "2. Goal: finish the user’s task exactly (form filling, text entry, navigation). "
+            "Only propose actions that can be executed by the available toolbox.\n\n"
+            "Tool usage:\n"
+            "- Always call the run_desktop_actions tool. Every response must include at least one executable action. "
+            "Insert a wait action if you need to pause.\n"
+            "- Use keyboard shortcuts when faster (Ctrl+T, Ctrl+L, Ctrl+C/V, Alt+Tab, etc.).\n"
+            "- Treat prior log entries like \"User clicked Go\" as confirmation that the Visual Agent panel has already been launched.\n"
+            "- Always open a new browser tab (Ctrl+T) before navigating to a site or performing a request; do not reuse tabs containing the Visual Agent UI.\n"
+            "- After every critical action (navigation, submit, open document), inspect the updated OmniParser context. "
+            "If the screen still looks the same or the expected element is missing, try an alternative approach instead of declaring success.\n"
+            "- Handle broad user requests independently—choose an appropriate search result or workflow without asking for preferences "
+            "unless the user explicitly required a choice.\n"
+            "- Prefer interacting with actual buttons/inputs rather than surrounding text labels; if text isn’t clickable, locate the nearest actionable element.\n"
+            "- When a required form field (username, DOB, etc.) needs information the user has not provided, do not invent data—set needs_user_input=true and ask for it explicitly.\n"
+            "- Ask for clarification only when the user’s request truly cannot be completed from the current UI.\n"
+            "- Only set should_continue=false when the latest screenshot/analysis clearly shows the user’s goal is complete "
+            "(e.g., logged-in dashboard visible, blank document loaded, item added to cart). If unsure, keep should_continue=true.\n"
+        )
+
+        user_message = {
+            "role": "user",
+            "content": [
+                *user_segments,
+                {
+                    "type": "image_url",
+                    "image_url": {"url": f"data:image/png;base64,{image_b64}"},
+                },
+            ],
         }
 
-        url = self._chat_url
-        headers = {"Authorization": f"Bearer {self.api_key}"}
-        response = self.session.post(url, headers=headers, json=payload, timeout=self.timeout)
-        if response.status_code >= 400:
-            raise QwenPlannerError(f"Qwen call failed: {response.status_code} {response.text}")
+        messages = [
+            {"role": "system", "content": system_prompt},
+            user_message,
+        ]
 
-        data = response.json()
-        content = data.get("choices", [{}])[0].get("message", {}).get("content", "")
-        if isinstance(content, list):
-            text_content = "".join(item.get("text", "") for item in content if isinstance(item, dict))
-        else:
-            text_content = content
+        try:
+            completion = self.client.chat.completions.create(
+                model=self.model,
+                temperature=self.temperature,
+                messages=messages,
+                tools=[RUN_ACTIONS_TOOL],
+                tool_choice={"type": "function", "function": {"name": "run_desktop_actions"}},
+            )
+        except OpenAIError as exc:
+            raise GPTPlannerError(f"OpenAI call failed: {exc}") from exc
 
-        return self._parse_response(text_content)
+        choice = completion.choices[0].message
+        tool_calls = choice.tool_calls or []
+        if not tool_calls:
+            raise GPTPlannerError("Model response did not include the required run_desktop_actions tool call.")
 
-    @property
-    def _chat_url(self) -> str:
-        base = self.api_base.rstrip("/")
-        if base.endswith("/v1"):
-            return f"{base}/chat/completions"
-        return f"{base}/v1/chat/completions"
+        tool_call = tool_calls[0]
+        try:
+            function_args = json.loads(tool_call.function.arguments or "{}")
+        except json.JSONDecodeError as exc:
+            raise GPTPlannerError(f"Tool arguments were not valid JSON: {tool_call.function.arguments}") from exc
+
+        actions_data = function_args.get("actions", [])
+        if not isinstance(actions_data, list) or not actions_data:
+            raise GPTPlannerError("Tool call did not provide any actions.")
+
+        actions: List[PlannedAction] = []
+        for item in actions_data:
+            if not isinstance(item, dict):
+                continue
+            actions.append(
+                PlannedAction(
+                    tool=item.get("tool", "log"),
+                    coordinates=item.get("coordinates"),
+                    element_id=item.get("element_id"),
+                    value=item.get("value"),
+                    keys=item.get("keys"),
+                    explanation=item.get("explanation"),
+                    bbox=item.get("bbox"),
+                    amount=item.get("amount"),
+                    wait_seconds=item.get("wait_seconds"),
+                )
+            )
+
+        return PlannerResponse(
+            thinking=function_args.get("thinking", choice.content or ""),
+            actions=actions,
+            should_continue=bool(function_args.get("should_continue")),
+            needs_user_input=bool(function_args.get("needs_user_input")),
+            user_question=function_args.get("user_question"),
+        )
 
     def _encode_image(self, path: str | Path) -> str:
         with open(path, "rb") as handle:
@@ -122,35 +242,13 @@ class QwenPlanner:
             lines.append(f"- {action}: {message} ({'ok' if success else 'failed'})")
         return "\n".join(lines)
 
-    def _parse_response(self, text: str) -> PlannerResponse:
-        try:
-            parsed = json.loads(text)
-        except json.JSONDecodeError as exc:
-            raise QwenPlannerError(f"Planner did not return JSON: {text}") from exc
+    @staticmethod
+    def _chunk_text(text: str, chunk_size: int = 3500) -> List[str]:
+        if not text:
+            return []
+        return [text[i : i + chunk_size] for i in range(0, len(text), chunk_size)]
 
-        actions_raw = parsed.get("actions", []) or []
-        actions: List[PlannedAction] = []
-        for item in actions_raw:
-            if not isinstance(item, dict):
-                continue
-            actions.append(
-                PlannedAction(
-                    tool=item.get("tool", "log"),
-                    coordinates=item.get("coordinates"),
-                    element_id=item.get("element_id"),
-                    value=item.get("value"),
-                    explanation=item.get("explanation"),
-                    bbox=item.get("bbox"),
-                    amount=item.get("amount"),
-                    wait_seconds=item.get("wait_seconds"),
-                )
-            )
 
-        return PlannerResponse(
-            thinking=parsed.get("thinking", ""),
-            actions=actions,
-            should_continue=bool(parsed.get("should_continue")),
-            needs_user_input=bool(parsed.get("needs_user_input")),
-            user_question=parsed.get("user_question"),
-        )
-
+# Backwards-compatible aliases
+QwenPlannerError = GPTPlannerError
+QwenPlanner = GPTPlanner

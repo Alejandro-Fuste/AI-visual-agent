@@ -20,6 +20,7 @@ class PlannedAction:
     coordinates: Optional[List[int]] = None
     element_id: Optional[int] = None
     value: Optional[str] = None
+    keys: Optional[List[str]] = None
     explanation: Optional[str] = None
     bbox: Optional[List[int]] = None
     amount: Optional[int] = None

@@ -1,0 +1,12 @@
+[
+  {
+    "stage": "init",
+    "message": "Pipeline started for prompt: Use google to find me an article on AI agents.",
+    "timestamp": "2025-11-17 18:53:26.008053"
+  },
+  {
+    "stage": "planner",
+    "message": "LLM requested additional user input",
+    "timestamp": "2025-11-17 18:54:03.406894"
+  }
+]

@@ -1,0 +1,101 @@
+{
+  "thinking": "Open a new browser tab, navigate to Google Scholar, and search for an academic article about AI agents so I can pick a suitable paper (survey or influential work) and return its citation and link.",
+  "should_continue": true,
+  "needs_user_input": false,
+  "actions": [
+    {
+      "tool": "shortcut",
+      "coordinates": null,
+      "element_id": null,
+      "value": null,
+      "keys": [
+        "ctrl",
+        "t"
+      ],
+      "explanation": "Open a new browser tab for the search.",
+      "bbox": null,
+      "amount": null,
+      "wait_seconds": null
+    },
+    {
+      "tool": "wait",
+      "coordinates": null,
+      "element_id": null,
+      "value": null,
+      "keys": null,
+      "explanation": "Give the new tab a moment to open.",
+      "bbox": null,
+      "amount": null,
+      "wait_seconds": 0.5
+    },
+    {
+      "tool": "shortcut",
+      "coordinates": null,
+      "element_id": null,
+      "value": null,
+      "keys": [
+        "ctrl",
+        "l"
+      ],
+      "explanation": "Focus the address bar to navigate to Google Scholar.",
+      "bbox": null,
+      "amount": null,
+      "wait_seconds": null
+    },
+    {
+      "tool": "type",
+      "coordinates": null,
+      "element_id": null,
+      "value": "https://scholar.google.com\n",
+      "keys": null,
+      "explanation": "Go to Google Scholar.",
+      "bbox": null,
+      "amount": null,
+      "wait_seconds": null
+    },
+    {
+      "tool": "wait",
+      "coordinates": null,
+      "element_id": null,
+      "value": null,
+      "keys": null,
+      "explanation": "Wait for Google Scholar to load.",
+      "bbox": null,
+      "amount": null,
+      "wait_seconds": 2
+    },
+    {
+      "tool": "type",
+      "coordinates": null,
+      "element_id": null,
+      "value": "AI agents academic survey\n",
+      "keys": null,
+      "explanation": "Search for an academic article about AI agents.",
+      "bbox": null,
+      "amount": null,
+      "wait_seconds": null
+    },
+    {
+      "tool": "wait",
+      "coordinates": null,
+      "element_id": null,
+      "value": null,
+      "keys": null,
+      "explanation": "Wait for search results to load.",
+      "bbox": null,
+      "amount": null,
+      "wait_seconds": 3
+    },
+    {
+      "tool": "screenshot",
+      "coordinates": null,
+      "element_id": null,
+      "value": null,
+      "keys": null,
+      "explanation": "Capture the search results so I can pick a suitable article.",
+      "bbox": null,
+      "amount": null,
+      "wait_seconds": 0.5
+    }
+  ]
+}

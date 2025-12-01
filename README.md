@@ -6,7 +6,7 @@ Visual Agent is an AI-powered web application that automates desktop workflows u
 - Windows or macOS desktop session (PyAutoGUI + overlay need a GUI; set `AGENT_DRY_RUN=true` for headless testing)
 - Python 3.10+
 - Node.js 18+
-- API access to your hosted OmniParser endpoint (Hugging Face Inference) and OpenAI (GPT-4o/GPT-5 family)
+- API access to the hosted OmniParser endpoint (Hugging Face Inference/Or local server) and OpenAI (GPT-4o/GPT-5)
 
 ## Backend setup
 ```bash

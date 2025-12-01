@@ -64,3 +64,15 @@ Run artifacts live under `runtime/runs/<timestamp>-<slug>/`:
 ## Notes
 - `runtime/runs/*` accumulates per-task data; you can clear it anytime for privacy.
 - For production, move secrets to a vault and consider replacing the in-memory RUNS store with Redis/Postgres. -->
+
+## Contributors
+
+Thanks to the following contributors:
+
+- [Alejandro Fuste] (https://github.com/Alejandro-Fuste)
+- [Karthika Ramasamy] (https://github.com/ka234388) 
+- [Umaima Khan] (https://github.com/UmaimaKhan01)
+- [Joshua Yu] (https://github.com/joshieyu)
+- [Rodrigo Vena] (https://github.com/rndae)
+- [Another Contributor](https://github.com/username)
+

@@ -74,5 +74,3 @@ Thanks to the following contributors:
 - [Umaima Khan] (https://github.com/UmaimaKhan01)
 - [Joshua Yu] (https://github.com/joshieyu)
 - [Rodrigo Vena] (https://github.com/rndae)
-- [Another Contributor](https://github.com/username)
-

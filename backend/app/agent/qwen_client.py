@@ -108,6 +108,7 @@ class GPTPlanner:
         elements: List[Dict[str, Any]],
         action_history: List[Dict[str, Any]],
         omniparser_payload: Optional[Dict[str, Any]] = None,
+        navigation_hint: Optional[str] = None,
     ) -> PlannerResponse:
         image_b64 = self._encode_image(screenshot_path)
         history_text = self._history_to_text(action_history)
@@ -147,7 +148,7 @@ class GPTPlanner:
             "You are Vision Form Agent, a careful desktop task planner.\n"
             "1. Inputs: latest screenshot (base64 image), parsed OmniParser elements array, "
             "user request, and up to 10 recent action logs.\n"
-            "2. Goal: finish the user’s task exactly (form filling, text entry, navigation). "
+            "2. Goal: finish the user's task exactly (form filling, text entry, navigation). "
             "Only propose actions that can be executed by the available toolbox.\n\n"
             "Tool usage:\n"
             "- Always call the run_desktop_actions tool. Every response must include at least one executable action. "
@@ -158,12 +159,11 @@ class GPTPlanner:
             "- When you need to interact with the Visual Agent UI (reprompt the user, review status), switch back to the browser tab titled \"frontend\" before typing; never perform user tasks inside that tab.\n"
             "- After every critical action (navigation, submit, open document), inspect the updated OmniParser context. "
             "If the screen still looks the same or the expected element is missing, try an alternative approach instead of declaring success.\n"
-            "- Handle broad user requests independently—choose an appropriate search result or workflow without asking for preferences "
-            "unless the user explicitly required a choice.\n"
-            "- Prefer interacting with actual buttons/inputs rather than surrounding text labels; if text isn’t clickable, locate the nearest actionable element.\n"
+            "- Handle broad user requests independently—choose an appropriate search result or workflow without asking for preferences unless the user explicitly required a choice.\n"
+            "- Prefer interacting with actual buttons/inputs rather than surrounding text labels; if text isn't clickable, locate the nearest actionable element.\n"
             "- When a required form field (username, DOB, shipping address, payment info, etc.) needs information the user has not provided, do not invent data—set needs_user_input=true and ask for it explicitly. If you are unsure what to enter, ask.\n"
-            "- Ask for clarification any time the user’s request cannot be completed with the current UI state or data on hand—err on the side of reprompting instead of guessing.\n"
-            "- Only set should_continue=false when the latest screenshot/analysis clearly shows the user’s goal is complete "
+            "- Ask for clarification any time the user's request cannot be completed with the current UI state or data on hand—err on the side of reprompting instead of guessing.\n"
+            "- Only set should_continue=false when the latest screenshot/analysis clearly shows the user's goal is complete "
             "(e.g., logged-in dashboard visible, blank document loaded, item added to cart). If unsure, keep should_continue=true.\n"
         )
 
@@ -182,6 +182,14 @@ class GPTPlanner:
             {"role": "system", "content": system_prompt},
             user_message,
         ]
+        if navigation_hint:
+            messages.insert(
+                1,
+                {
+                    "role": "system",
+                    "content": f"Navigation hint from host: {navigation_hint.strip()}",
+                },
+            )
 
         try:
             completion = self.client.chat.completions.create(
@@ -206,33 +214,39 @@ class GPTPlanner:
             raise GPTPlannerError(f"Tool arguments were not valid JSON: {tool_call.function.arguments}") from exc
 
         actions_data = function_args.get("actions", [])
-        if not isinstance(actions_data, list) or not actions_data:
-            raise GPTPlannerError("Tool call did not provide any actions.")
+        needs_input = bool(function_args.get("needs_user_input"))
+        user_question = function_args.get("user_question")
 
         actions: List[PlannedAction] = []
-        for item in actions_data:
-            if not isinstance(item, dict):
-                continue
-            actions.append(
-                PlannedAction(
-                    tool=item.get("tool", "log"),
-                    coordinates=item.get("coordinates"),
-                    element_id=item.get("element_id"),
-                    value=item.get("value"),
-                    keys=item.get("keys"),
-                    explanation=item.get("explanation"),
-                    bbox=item.get("bbox"),
-                    amount=item.get("amount"),
-                    wait_seconds=item.get("wait_seconds"),
+        if isinstance(actions_data, list):
+            for item in actions_data:
+                if not isinstance(item, dict):
+                    continue
+                actions.append(
+                    PlannedAction(
+                        tool=item.get("tool", "log"),
+                        coordinates=item.get("coordinates"),
+                        element_id=item.get("element_id"),
+                        value=item.get("value"),
+                        keys=item.get("keys"),
+                        explanation=item.get("explanation"),
+                        bbox=item.get("bbox"),
+                        amount=item.get("amount"),
+                        wait_seconds=item.get("wait_seconds"),
+                    )
                 )
-            )
+
+        # Safety net: if the model failed to provide actions, trigger a reprompt instead of crashing
+        if not actions:
+            needs_input = True
+            user_question = user_question or "I lack enough detail to proceed. Please clarify the next step or provide the missing data."
 
         return PlannerResponse(
             thinking=function_args.get("thinking", choice.content or ""),
             actions=actions,
             should_continue=bool(function_args.get("should_continue")),
-            needs_user_input=bool(function_args.get("needs_user_input")),
-            user_question=function_args.get("user_question"),
+            needs_user_input=needs_input,
+            user_question=user_question,
         )
 
     def _encode_image(self, path: str | Path) -> str:

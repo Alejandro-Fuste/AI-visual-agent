@@ -1,1 +1,1 @@
--r AI-visual-agent-app/backend/requirements.txt
+-r backend/requirements.txt

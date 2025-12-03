@@ -32,7 +32,13 @@ class Settings(BaseModel):
     AGENT_ENABLE_OVERLAY: bool = os.getenv("AGENT_ENABLE_OVERLAY", "true").lower() == "true"
     AGENT_DRY_RUN: bool = os.getenv("AGENT_DRY_RUN", "false").lower() == "true"
     AGENT_ACTION_PAUSE: float = float(os.getenv("AGENT_ACTION_PAUSE", "0.35"))
+    NAV_HINT_FILE: Path = Path(os.getenv("NAV_HINT_FILE", str((RUNTIME_DIR / "navigation_hint.txt").resolve())))
+    AGENT_FRONTEND_URL: str = os.getenv("AGENT_FRONTEND_URL", "")
+    AGENT_RETURN_TO_FRONTEND: bool = os.getenv("AGENT_RETURN_TO_FRONTEND", "true").lower() == "true"
 
 
 settings = Settings()
 settings.AGENT_RUNS_DIR.mkdir(parents=True, exist_ok=True)
+settings.NAV_HINT_FILE.parent.mkdir(parents=True, exist_ok=True)
+if not settings.NAV_HINT_FILE.exists():
+    settings.NAV_HINT_FILE.write_text("browser_tab_title=frontend\n", encoding="utf-8")

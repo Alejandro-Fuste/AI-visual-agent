@@ -10,6 +10,7 @@ from omniparser_tool import OmniParserClient, OmniParserError, draw_omniparser_b
 
 from app.agent.models import AgentResult, PlannedAction
 from app.agent.qwen_client import QwenPlanner, QwenPlannerError
+from app.config import settings
 
 
 # Developed by Rodrigo Vena - Architecture and Flow Control
@@ -48,6 +49,7 @@ class VisualAgentEngine:
         self.plan_log_dir.mkdir(parents=True, exist_ok=True)
         self.omniparser_debug_dir = (log_dir / "omniparser").resolve()
         self.omniparser_debug_dir.mkdir(parents=True, exist_ok=True)
+        self.nav_hint_file = settings.NAV_HINT_FILE
         self.omniparser = OmniParserClient(api_url=omniparser_url, api_token=omniparser_token)
         self.planner = QwenPlanner(
             api_key=openai_api_key,
@@ -56,6 +58,7 @@ class VisualAgentEngine:
             temperature=openai_temperature,
         )
         self.log_file = log_file
+        self.nav_hint_info = self._parse_nav_hint()
 
     def run(
         self,
@@ -78,7 +81,8 @@ class VisualAgentEngine:
         logged_start = self.toolbox.log_action(start_record)
         action_history.append(logged_start.to_dict())
 
-        instruction = self._compose_instruction(prompt, clarifications)
+        nav_hint = self._nav_hint_text()
+        instruction = self._compose_instruction(prompt, clarifications, nav_hint)
         shot = self.toolbox.take_screenshot(f"run_{self.run_id}_start")
         screenshot_path = Path(shot.metadata.get("path"))
         screenshots.append(screenshot_path.as_posix())
@@ -106,6 +110,7 @@ class VisualAgentEngine:
                         latest_elements,
                         action_history,
                         omniparser_payload=perception,
+                        navigation_hint=nav_hint,
                     )
                 except QwenPlannerError as exc:
                     raise RuntimeError(f"Planner failed: {exc}") from exc
@@ -182,6 +187,8 @@ class VisualAgentEngine:
                 log_path=str(self.log_file),
             )
         finally:
+            if settings.AGENT_RETURN_TO_FRONTEND:
+                self._return_to_frontend()
             self.toolbox.shutdown()
 
     def _execute_actions(self, actions: List[PlannedAction], elements: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
@@ -243,12 +250,15 @@ class VisualAgentEngine:
                 time.sleep(self.action_pause)
         return executed
 
-    def _compose_instruction(self, prompt: str, clarifications: List[str]) -> str:
+    def _compose_instruction(self, prompt: str, clarifications: List[str], nav_hint: str) -> str:
         prompt = prompt.strip()
-        if not clarifications:
-            return prompt
-        clar_text = "\n".join(f"- {item}" for item in clarifications)
-        return f"{prompt}\n\nAdditional details from user:\n{clar_text}"
+        parts = [prompt]
+        if nav_hint:
+            parts.append(f"Navigation hint: {nav_hint}")
+        if clarifications:
+            clar_text = "\n".join(f"- {item}" for item in clarifications)
+            parts.append(f"Additional details from user:\n{clar_text}")
+        return "\n\n".join(parts)
 
     def _write_plan_log(self, iteration: int, plan_payload: Dict[str, Any]) -> None:
         try:
@@ -278,3 +288,38 @@ class VisualAgentEngine:
             draw_omniparser_boxes(screenshot_path, elements, out_path)
         except Exception:
             pass
+
+    def _nav_hint_text(self) -> str:
+        parts = []
+        for key, val in self.nav_hint_info.items():
+            parts.append(f"{key}={val}")
+        return "; ".join(parts)
+
+    def _parse_nav_hint(self) -> Dict[str, str]:
+        data: Dict[str, str] = {}
+        try:
+            if self.nav_hint_file.exists():
+                for line in self.nav_hint_file.read_text(encoding="utf-8").splitlines():
+                    if "=" in line:
+                        k, v = line.split("=", 1)
+                        data[k.strip()] = v.strip()
+        except Exception:
+            pass
+        if settings.AGENT_FRONTEND_URL and not data.get("frontend_url"):
+            data["frontend_url"] = settings.AGENT_FRONTEND_URL
+        if not data:
+            data["browser_tab_title"] = "frontend"
+        return data
+
+    def _return_to_frontend(self) -> None:
+        url = self.nav_hint_info.get("frontend_url") or settings.AGENT_FRONTEND_URL
+        if not url:
+            # Fall back to ctrl+tab to cycle; low-risk attempt to reach the frontend tab
+            self.toolbox.shortcut(["ctrl", "tab"], "Cycle tabs to reach frontend UI")  # best-effort
+            return
+        # Use address bar focus and type the URL
+        self.toolbox.shortcut(["ctrl", "l"], "Focus address bar to return to frontend UI")
+        self.toolbox.type_text(None, None, url, "Navigate back to Visual Agent frontend")
+        self.toolbox.shortcut(["enter"], "Open Visual Agent frontend")
+        if self.action_pause:
+            time.sleep(self.action_pause)
